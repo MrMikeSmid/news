@@ -1,0 +1,1 @@
+<section class="message-page"><div class="container narrow message-card"><h1><?= e($title) ?></h1><p><?= e($message) ?></p><a class="button primary" href="<?= e(url()) ?>">Naar home</a></div></section>
