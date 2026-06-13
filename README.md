@@ -39,13 +39,13 @@ De SQLite-database wordt aangemaakt als `storage/database.sqlite`.
 ## Installatie op mikesmid.nl/sportweek-t-zand
 
 1. Upload alle bestanden naar de map `sportweek-t-zand` onder de document root.
-2. Zet in `app/config.php`:
+2. Het installatiepad `/sportweek-t-zand` wordt automatisch afgeleid van de URL van `index.php`. Alleen wanneer de webserver dit pad niet correct doorgeeft, stel je de omgevingsvariabele in:
 
-   ```php
-   'base_path' => '/sportweek-t-zand',
+   ```bash
+   APP_BASE_PATH=/sportweek-t-zand
    ```
 
-   Als alternatief kan de omgevingsvariabele `APP_BASE_PATH=/sportweek-t-zand` worden ingesteld.
+   Een ingestelde `APP_BASE_PATH` heeft altijd voorrang op de automatische detectie.
 
 3. Geef `storage/` schrijfrechten voor de PHP/webservergebruiker. Gebruik bij voorkeur `775`; gebruik alleen ruimere rechten als de hostingprovider dat vereist.
 4. Controleer dat Apache `mod_rewrite` actief is en `.htaccess` mag worden toegepast.
