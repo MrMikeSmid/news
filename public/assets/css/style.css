@@ -39,3 +39,17 @@
 .steps-photo strong{font-size:23px}.steps-photo span{font-size:13px;color:#d8dedf}
 @media(max-width:900px){.activity-intro{grid-template-columns:1fr 1fr}.activity-intro-copy{padding:35px}.steps-layout{grid-template-columns:1fr}.steps-photo{position:relative;top:auto;height:500px}}
 @media(max-width:600px){.hero-photo{inset:10px 15px}.hero-photo figcaption{left:22px;bottom:22px}.hero-photo figcaption span{bottom:calc(100% + 85px)}.hero-photo figcaption strong{font-size:23px}.concept-photo{height:320px;margin-top:35px}.concept-photo>div{left:22px;right:22px;bottom:22px}.activity-intro{grid-template-columns:1fr}.activity-intro-copy{padding:30px 24px}.activity-intro h3{font-size:28px}.activity-intro img{height:300px}.steps-photo{height:470px}}
+
+/* Verenigingsidentiteit */
+.brand-logo{width:54px;height:54px;display:block;object-fit:contain;border-radius:50%;filter:drop-shadow(0 5px 14px rgba(200,244,61,.12));transition:transform .2s ease,filter .2s ease}
+.brand:hover .brand-logo{transform:scale(1.05);filter:drop-shadow(0 6px 18px rgba(200,244,61,.25))}
+.nav-wrap{height:86px}
+.hero-logo-stage{position:absolute;inset:-16px -12px -8px 15px;margin:0;display:grid;place-items:center;isolation:isolate}
+.hero-logo-stage:before{content:"";position:absolute;inset:8%;border-radius:50%;background:radial-gradient(circle,rgba(200,244,61,.14),rgba(200,244,61,.03) 52%,transparent 70%);filter:blur(8px);z-index:-1}
+.hero-logo-stage:after{content:"";position:absolute;inset:3%;border:1px solid rgba(200,244,61,.2);border-radius:50%;z-index:-1}
+.hero-logo-stage img{width:min(100%,540px);height:auto;display:block;object-fit:contain;filter:drop-shadow(0 28px 55px rgba(0,0,0,.45))}
+.hero-logo-stage figcaption{position:absolute;right:3px;bottom:24px;padding:13px 18px;border:1px solid rgba(255,255,255,.13);border-radius:12px;background:rgba(13,17,20,.86);backdrop-filter:blur(12px);display:grid;transform:rotate(3deg);box-shadow:var(--shadow)}
+.hero-logo-stage figcaption strong{font-size:14px}.hero-logo-stage figcaption small{color:var(--lime);font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px}
+.footer-brand .brand-logo{width:78px;height:78px}.footer-brand .brand{align-items:center}
+@media(max-width:900px){.main-nav{top:86px}.hero-logo-stage{inset:-20px 8% -10px}.hero-visual{min-height:520px}}
+@media(max-width:600px){.nav-wrap{height:74px}.brand-logo{width:48px;height:48px}.main-nav{top:74px}.hero-logo-stage{inset:-12px -2% -5px}.hero-logo-stage figcaption{right:8px;bottom:10px}.hero-visual{min-height:390px}.card-float{bottom:6px;left:0;right:auto}.footer-brand .brand-logo{width:68px;height:68px}}

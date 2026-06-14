@@ -13,7 +13,7 @@
             <p class="hero-note"><strong>100 geïnteresseerden</strong> is ons eerste doel. Dan zetten we de volgende stap.</p>
         </div>
         <div class="hero-visual reveal">
-            <figure class="hero-photo"><img src="<?= e(asset('images/samen-hardlopen.svg')) ?>" alt="Sporters die samen buiten hardlopen" width="1920" height="1280"><figcaption><span>01</span><strong>Samen in beweging</strong><small>Sport · Spel · Gezelligheid</small></figcaption></figure>
+            <figure class="hero-logo-stage"><img src="<?= e(asset('images/sportweek-t-zand-logo.svg')) ?>" alt="Logo Sportweek ’t Zand, met het dorp, de molen en de letters SZ" width="1280" height="1280"><figcaption><strong>Sportweek ’t Zand</strong><small>Sport · Spel · Gezelligheid</small></figcaption></figure>
             <div class="sport-card card-float"><strong><?= $counts['interest'] ?></strong><span>mensen enthousiast</span></div>
             <div class="orbit orbit-one"></div><div class="orbit orbit-two"></div>
         </div>
