@@ -14,7 +14,7 @@
 <header class="site-header">
     <div class="container nav-wrap">
         <a class="brand" href="<?= e(url()) ?>" aria-label="Sportweek ’t Zand home">
-            <span class="brand-mark">SZ</span>
+            <img class="brand-logo" src="<?= e(asset('images/sportweek-t-zand-logo.svg')) ?>" alt="" width="1280" height="1280">
             <span>Sportweek <strong>’t Zand</strong><small>Van idee naar beweging</small></span>
         </a>
         <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="main-nav"><span></span><span></span><span></span><span class="sr-only">Menu</span></button>
@@ -47,7 +47,7 @@
 <?php if (!$isAdmin): ?>
 <footer class="site-footer">
     <div class="container footer-grid">
-        <div><a class="brand" href="<?= e(url()) ?>"><span class="brand-mark">SZ</span><span>Sportweek <strong>’t Zand</strong></span></a><p>Een lokaal initiatief om animo te peilen.</p></div>
+        <div class="footer-brand"><a class="brand" href="<?= e(url()) ?>"><img class="brand-logo" src="<?= e(asset('images/sportweek-t-zand-logo.svg')) ?>" alt="" width="1280" height="1280"><span>Sportweek <strong>’t Zand</strong></span></a><p>Een lokaal initiatief om animo te peilen.</p></div>
         <div><h2>Pagina’s</h2><a href="<?= e(url('privacy')) ?>">Privacy</a><a href="<?= e(url('contact')) ?>">Contact</a><a href="<?= e(url('admin/login')) ?>">Beheer</a></div>
         <div><h2>Volg het initiatief</h2>
             <?php global $config; foreach ($config['socials'] as $label => $socialUrl): ?>
