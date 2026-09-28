@@ -46,25 +46,28 @@ function old(string $key, string $default = ''): string
     return e($_POST[$key] ?? $default);
 }
 
-function selected(string $key, string $value): string
-{
-    return (($_POST[$key] ?? '') === $value) ? ' selected' : '';
-}
-
-function checked(string $key, string $value = '1'): string
-{
-    $actual = $_POST[$key] ?? null;
-    return ($actual === $value || (is_array($actual) && in_array($value, $actual, true))) ? ' checked' : '';
-}
-
-function validate_email(string $email): bool
-{
-    return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
-}
-
 function clean(string $key): string
 {
     return trim((string) ($_POST[$key] ?? ''));
+}
+
+function setting(string $key, string $default = ''): string
+{
+    static $cache = [];
+    if (array_key_exists($key, $cache)) {
+        return $cache[$key];
+    }
+    $statement = db()->prepare('SELECT value FROM settings WHERE key = :key');
+    $statement->execute(['key' => $key]);
+    $value = $statement->fetchColumn();
+    return $cache[$key] = ($value === false ? $default : (string) $value);
+}
+
+function set_setting(string $key, string $value): void
+{
+    $statement = db()->prepare('INSERT INTO settings (key, value) VALUES (:key, :value)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value');
+    $statement->execute(['key' => $key, 'value' => $value]);
 }
 
 function render(string $view, array $data = []): void
@@ -74,6 +77,14 @@ function render(string $view, array $data = []): void
     require __DIR__ . '/views/' . $view . '.php';
     $content = (string) ob_get_clean();
     require __DIR__ . '/views/layout.php';
+}
+
+function render_partial(string $view, array $data = []): string
+{
+    extract($data, EXTR_SKIP);
+    ob_start();
+    require __DIR__ . '/views/' . $view . '.php';
+    return (string) ob_get_clean();
 }
 
 function flash(string $key, ?string $value = null): ?string
@@ -87,19 +98,35 @@ function flash(string $key, ?string $value = null): ?string
     return $message;
 }
 
-function submission_counts(): array
+function time_ago(string $datetime): string
 {
-    if (!database_is_ready()) {
-        return ['interest' => 0, 'teams' => 0, 'volunteers' => 0, 'sponsors' => 0, 'ideas' => 0];
+    $timestamp = strtotime($datetime . ' UTC');
+    if ($timestamp === false) {
+        return $datetime;
     }
-    $pdo = db();
-    return [
-        'interest' => (int) $pdo->query("SELECT COUNT(*) FROM interest_submissions WHERE participation_choice != 'no'")->fetchColumn(),
-        'teams' => (int) $pdo->query("SELECT COUNT(*) FROM interest_submissions WHERE participation_choice = 'team'")->fetchColumn(),
-        'volunteers' => (int) $pdo->query('SELECT COUNT(*) FROM volunteer_submissions')->fetchColumn(),
-        'sponsors' => (int) $pdo->query('SELECT COUNT(*) FROM sponsor_submissions')->fetchColumn(),
-        'ideas' => (int) $pdo->query('SELECT COUNT(*) FROM idea_submissions')->fetchColumn(),
-    ];
+    $diff = time() - $timestamp;
+    if ($diff < 60) {
+        return 'zojuist';
+    }
+    if ($diff < 3600) {
+        return floor($diff / 60) . 'm geleden';
+    }
+    if ($diff < 86400) {
+        return floor($diff / 3600) . 'u geleden';
+    }
+    if ($diff < 2592000) {
+        return floor($diff / 86400) . 'd geleden';
+    }
+    return date('d-m-Y', $timestamp);
+}
+
+function slugify(string $text): string
+{
+    $text = trim($text);
+    $text = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $text) ?: $text;
+    $text = strtolower($text);
+    $text = preg_replace('/[^a-z0-9]+/', '-', $text) ?? '';
+    return trim($text, '-') ?: 'item';
 }
 
 function abort(int $status, string $message): never

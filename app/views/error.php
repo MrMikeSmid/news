@@ -1,1 +1,20 @@
-<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Er ging iets mis</title><style>body{background:#101418;color:#fff;font:18px system-ui;display:grid;place-items:center;min-height:100vh;margin:0}.box{max-width:600px;padding:40px;text-align:center}a{color:#c9ff35}</style></head><body><div class="box"><h1>Dat ging niet helemaal goed.</h1><p><?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8') ?></p><a href="./">Terug naar de website</a></div></body></html>
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Er ging iets mis</title>
+<style>
+body{font-family:-apple-system,BlinkMacSystemFont,"Inter",sans-serif;background:#FAF9F5;color:#1F1E1D;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0}
+.box{max-width:420px;text-align:center;padding:40px}
+h1{font-size:22px;margin-bottom:8px}
+p{color:#6B6B68}
+</style>
+</head>
+<body>
+<div class="box">
+<h1>Er ging iets mis</h1>
+<p><?= e($message ?? 'Probeer het later opnieuw.') ?></p>
+</div>
+</body>
+</html>

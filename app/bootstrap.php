@@ -8,6 +8,8 @@ require_once __DIR__ . '/database.php';
 require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/migrate.php';
+require_once __DIR__ . '/views/partials/icons.php';
 
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_name($config['session_name']);
@@ -18,6 +20,10 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
         'path' => ($config['base_path'] ?: '') . '/',
     ]);
     session_start();
+}
+
+if (!database_is_ready()) {
+    run_migrations();
 }
 
 set_exception_handler(static function (Throwable $exception): void {

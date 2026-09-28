@@ -3,45 +3,38 @@
 declare(strict_types=1);
 
 require dirname(__DIR__) . '/app/bootstrap.php';
-require_once dirname(__DIR__) . '/app/controllers/PublicController.php';
-require_once dirname(__DIR__) . '/app/controllers/AdminController.php';
+require_once dirname(__DIR__) . '/app/fetcher.php';
+require_once dirname(__DIR__) . '/app/controllers/AuthController.php';
+require_once dirname(__DIR__) . '/app/controllers/WallController.php';
+require_once dirname(__DIR__) . '/app/controllers/SourceController.php';
+require_once dirname(__DIR__) . '/app/controllers/BlogController.php';
+require_once dirname(__DIR__) . '/app/controllers/SettingsController.php';
+require_once dirname(__DIR__) . '/app/controllers/MediaController.php';
 
 $path = request_path();
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
-if (!database_is_ready() && !str_starts_with($path, '/setup')) {
-    render('simple', [
-        'title' => 'Installatie nodig',
-        'message' => 'De website is nog niet geïnstalleerd. Open setup.php om de database en het eerste beheeraccount aan te maken.',
-    ]);
-    exit;
-}
-
 $routes = [
     'GET' => [
-        '/' => fn () => home(),
-        '/interesse' => fn () => form_page('interest'),
-        '/vrijwilligers' => fn () => form_page('volunteer'),
-        '/sponsoren' => fn () => form_page('sponsor'),
-        '/idee' => fn () => form_page('idea'),
-        '/privacy' => fn () => render('privacy', ['title' => 'Privacy']),
-        '/contact' => fn () => render('contact', ['title' => 'Contact']),
-        '/bedankt' => fn () => render('thanks', ['title' => 'Bedankt!']),
-        '/admin/login' => fn () => admin_login(),
-        '/admin' => fn () => admin_dashboard(),
+        '/' => fn () => redirect(admin_user() ? 'wall' : 'login'),
+        '/login' => fn () => login_page(),
+        '/wall' => fn () => wall_page(),
+        '/sources' => fn () => sources_page(),
+        '/blogs' => fn () => blogs_page(),
+        '/blogs/new' => fn () => blog_new(),
+        '/settings' => fn () => settings_page(),
+        '/cron/fetch' => fn () => cron_fetch(),
     ],
     'POST' => [
-        '/interesse' => fn () => submit_interest(),
-        '/vrijwilligers' => fn () => submit_volunteer(),
-        '/sponsoren' => fn () => submit_sponsor(),
-        '/idee' => fn () => submit_idea(),
-        '/admin/login' => fn () => admin_login(),
-        '/admin/logout' => function (): void {
-            require_admin();
-            verify_csrf();
-            logout_admin();
-            redirect('admin/login');
-        },
+        '/login' => fn () => login_page(),
+        '/logout' => fn () => logout(),
+        '/wall/post' => fn () => create_manual_post(),
+        '/sources' => fn () => create_source(),
+        '/sources/refresh-all' => fn () => refresh_all_sources(),
+        '/blogs' => fn () => blog_create(),
+        '/settings' => fn () => settings_update(),
+        '/settings/password' => fn () => settings_password_update(),
+        '/settings/cron-token' => fn () => settings_regenerate_cron_token(),
     ],
 ];
 
@@ -50,15 +43,40 @@ if (isset($routes[$method][$path])) {
     exit;
 }
 
-if ($method === 'GET' && preg_match('#^/admin/submissions/(interest|volunteers|sponsors|ideas)$#', $path, $matches)) {
-    admin_submissions($matches[1]);
+if ($method === 'GET' && preg_match('#^/media/([A-Za-z0-9._-]+)$#', $path, $m)) {
+    serve_media($m[1]);
     exit;
 }
-if ($method === 'GET' && preg_match('#^/admin/export/(interest|volunteers|sponsors|ideas)$#', $path, $matches)) {
-    admin_export($matches[1]);
+if ($method === 'GET' && preg_match('#^/blogs/(\d+)/edit$#', $path, $m)) {
+    blog_edit((int) $m[1]);
+    exit;
 }
-if ($method === 'POST' && preg_match('#^/admin/sponsors/(\d+)$#', $path, $matches)) {
-    admin_sponsor_update((int) $matches[1]);
+if ($method === 'POST' && preg_match('#^/blogs/(\d+)$#', $path, $m)) {
+    blog_update((int) $m[1]);
+    exit;
+}
+if ($method === 'POST' && preg_match('#^/blogs/(\d+)/delete$#', $path, $m)) {
+    blog_delete((int) $m[1]);
+    exit;
+}
+if ($method === 'POST' && preg_match('#^/blogs/(\d+)/send$#', $path, $m)) {
+    blog_send((int) $m[1]);
+    exit;
+}
+if ($method === 'POST' && preg_match('#^/posts/(\d+)/delete$#', $path, $m)) {
+    delete_post((int) $m[1]);
+    exit;
+}
+if ($method === 'POST' && preg_match('#^/sources/(\d+)/toggle$#', $path, $m)) {
+    toggle_source((int) $m[1]);
+    exit;
+}
+if ($method === 'POST' && preg_match('#^/sources/(\d+)/delete$#', $path, $m)) {
+    delete_source((int) $m[1]);
+    exit;
+}
+if ($method === 'POST' && preg_match('#^/sources/(\d+)/refresh$#', $path, $m)) {
+    refresh_source((int) $m[1]);
     exit;
 }
 
