@@ -19,6 +19,6 @@ function verify_csrf(): void
 {
     $token = $_POST['_token'] ?? '';
     if (!is_string($token) || !hash_equals(csrf_token(), $token)) {
-        abort(419, 'Deze sessie is verlopen. Ga terug en probeer het formulier opnieuw.');
+        abort(419, 'Deze sessie is verlopen. Ga terug en probeer het opnieuw.');
     }
 }

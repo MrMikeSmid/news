@@ -29,7 +29,7 @@ function db(): PDO
 function database_is_ready(): bool
 {
     try {
-        $query = db()->query("SELECT name FROM sqlite_master WHERE type='table' AND name='settings'");
+        $query = db()->query("SELECT name FROM sqlite_master WHERE type='table' AND name='admin_users'");
         return (bool) $query->fetchColumn();
     } catch (Throwable) {
         return false;

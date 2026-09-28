@@ -1,95 +1,73 @@
-# Sportweek ’t Zand
+# Homebase
 
-Een uitbreidbare PHP 8/SQLite-webapplicatie om lokaal draagvlak te meten voor een mogelijke Sportweek in ’t Zand. Versie 1 richt zich op interesse, vrijwilligers, sponsoren en ideeën; de site communiceert nadrukkelijk niet dat het evenement al definitief doorgaat.
+Een persoonlijke, uitbreidbare PHP 8/SQLite-CMS: jouw eigen nieuws-, media- en bloghomebase. Versie 1 bevat een nieuwswall (RSS + handmatige/social berichten met afbeeldingen en video's) en een blogmodule die posts via een API-call naar een andere website kan versturen.
 
 ## Functionaliteit
 
-- Responsive, mobiel-eerste landingspagina met actuele database-statistieken.
-- Interesse-, vrijwilligers-, sponsor- en ideeënformulieren.
-- CSRF-beveiliging, server-side validatie, output escaping en PDO prepared statements.
-- Beveiligde beheeromgeving met dashboard en inzendingenoverzichten.
-- Sponsorstatussen en interne sponsornotities.
-- CSV-export per inzendingstype (UTF-8 met puntkomma als scheidingsteken).
-- Eenmalige setup voor SQLite en het eerste, veilig gehashte beheerwachtwoord.
-- Subdirectory-ondersteuning, bijvoorbeeld `/sportweek-t-zand`.
+- Login met sessie-authenticatie (standaard `admin` / `admin123!` — wijzig dit meteen na installatie bij Instellingen).
+- **Wall**: een Facebook-achtige feed van al je bronnen, met filters per categorie.
+- **Bronnen**: voeg zelf RSS-feeds toe (ook geschikt voor RSS-bridges van social media) of maak handmatige berichten met tekst, afbeeldingen, video's en links.
+- **Blogs**: schrijf blogposts met een eenvoudige rich-text-editor, sla ze op als concept of gepubliceerd, en verstuur ze met één klik via een API-call (POST + JSON, optioneel met Bearer-token) naar een andere website van jezelf.
+- Automatisch verversen via een beveiligde cron-URL (token in Instellingen), of handmatig met de "Verversen"-knoppen.
+- Geüploade media wordt opgeslagen in `storage/uploads/` (blijft bewaard tussen deploys) en veilig geserveerd via `/media/...`.
+- Consistente, warme "Claude-stijl" huisstijl: zelfde kleuren, typografie, kaarten en knoppen door de hele app, met automatische donkere modus.
+- CSRF-beveiliging, server-side validatie, output-escaping en PDO prepared statements.
+- Database en admin-account worden automatisch aangemaakt bij de eerste request (geen aparte setup-stap nodig).
 
 ## Vereisten
 
 - PHP 8.0 of hoger.
-- PHP-extensies `pdo` en `pdo_sqlite`.
-- Apache met `mod_rewrite` en toegestane `.htaccess`-overrides, of een vergelijkbare webserverconfiguratie.
+- PHP-extensies `pdo`, `pdo_sqlite`, `dom`, bij voorkeur `curl`.
+- Apache met `mod_rewrite` en toegestane `.htaccess`-overrides (of vergelijkbare configuratie).
 - Schrijfrechten voor de webserver op de map `storage/`.
 
 ## Lokale installatie
 
-1. Kopieer het project naar de document root.
-2. Start lokaal vanuit de projectmap:
+```bash
+php -S localhost:8000
+```
 
-   ```bash
-   php -S localhost:8000
-   ```
+Open `http://localhost:8000/`. De database en het admin-account (`admin` / `admin123!`) worden automatisch aangemaakt in `storage/database.sqlite`. Log in en wijzig het wachtwoord meteen bij **Instellingen**.
 
-3. Open `http://localhost:8000/setup.php`.
-4. Kies een beheerdersnaam en een sterk wachtwoord van minimaal 12 tekens.
-5. Verwijder of hernoem `setup.php` na een geslaagde installatie.
-6. Open `http://localhost:8000/admin/login`.
+## Installatie op hosting (via de meegeleverde FTP-deploy)
 
-De SQLite-database wordt aangemaakt als `storage/database.sqlite`.
+De workflow `.github/workflows/deploy-ftp.yml` upload bij elke push naar `main` automatisch de hele app (behalve `.git`, `.github` en `storage/`) naar de FTP-server in de secret `FTP_SERVER_DIR`. Zorg voor de repository secrets `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD` en `FTP_SERVER_DIR`.
 
-## Installatie op mikesmid.nl/sportweek-t-zand
+1. Zorg dat de doelmap op de hosting schrijfrechten heeft voor `storage/` (bij voorkeur `775`).
+2. Push naar `main` — de deploy start automatisch (of trigger hem handmatig via *Run workflow*).
+3. Open de site; database en admin-account worden automatisch aangemaakt.
+4. Log in en wijzig direct het standaardwachtwoord bij **Instellingen**.
+5. Stel eventueel `APP_BASE_PATH` in als de app in een submap draait en dit niet automatisch goed wordt gedetecteerd.
 
-1. Upload alle bestanden naar de map `sportweek-t-zand` onder de document root.
-2. Het installatiepad `/sportweek-t-zand` wordt automatisch afgeleid van de URL van `index.php`. Alleen wanneer de webserver dit pad niet correct doorgeeft, stel je de omgevingsvariabele in:
+## RSS-bronnen automatisch verversen
 
-   ```bash
-   APP_BASE_PATH=/sportweek-t-zand
-   ```
+Elke bron wordt handmatig ververst via de knop, maar je kunt dit ook automatiseren: kopieer de cron-URL van de pagina **Bronnen** of **Instellingen** (bevat een geheime token) en laat je hosting deze periodiek aanroepen, bijvoorbeeld via een cPanel cron job:
 
-   Een ingestelde `APP_BASE_PATH` heeft altijd voorrang op de automatische detectie.
+```bash
+curl -fsS "https://jouw-domein.nl/cron/fetch?token=...."
+```
 
-3. Geef `storage/` schrijfrechten voor de PHP/webservergebruiker. Gebruik bij voorkeur `775`; gebruik alleen ruimere rechten als de hostingprovider dat vereist.
-4. Controleer dat Apache `mod_rewrite` actief is en `.htaccess` mag worden toegepast.
-5. Open `https://mikesmid.nl/sportweek-t-zand/setup.php`.
-6. Maak het eerste beheeraccount aan.
-7. Verwijder of hernoem `setup.php` direct na installatie.
-8. Log in via `https://mikesmid.nl/sportweek-t-zand/admin/login`.
+## Blogs versturen naar een andere website
 
-Alle links, assets, redirects en formulieracties gebruiken de ingestelde `base_path`.
+Stel bij **Instellingen** het API-endpoint en (optioneel) een API-sleutel in. De knop "Versturen naar site" op een blog stuurt een `POST` met JSON-body (`title`, `slug`, `excerpt`, `content`, `cover_image`, `published_at`) en, indien ingesteld, de header `Authorization: Bearer <sleutel>`.
 
-## Instellingen aanpassen
-
-Pas `app/config.php` aan voor:
-
-- `base_path`: installatiepad onder het domein.
-- `contact_email`: zichtbaar contactadres.
-- `socials`: vul per platform een volledige URL in. Een lege waarde toont voorlopig een niet-actieve placeholder.
-- `database_path`: locatie van het SQLite-bestand.
-
-## Beveiliging en productie
-
-- Verwijder `setup.php` na installatie.
-- Forceer HTTPS via de hostingconfiguratie.
-- Maak regelmatig een back-up van `storage/database.sqlite`.
-- Houd PHP bijgewerkt.
-- De meegeleverde `.htaccess` blokkeert directe toegang tot app-, database- en storagebestanden.
-- Ruwe foutmeldingen worden gelogd, maar niet aan bezoekers getoond.
-
-## Structuur en uitbreiden
+## Structuur
 
 ```text
 app/
-  controllers/    Publieke en beheeracties
-  views/          Herbruikbare PHP-views
-  auth.php        Beheerauthenticatie
-  csrf.php        CSRF-bescherming
-  database.php    PDO/SQLite-verbinding
+  controllers/    Auth, Wall, Sources, Blogs, Settings, Media
+  views/          Layout, wall, bronnen, blogs, instellingen
+  fetcher.php     RSS/Atom-parser met afbeelding-/video-detectie
+  migrate.php     Automatische installatie + seed-admin
+  auth.php, csrf.php, database.php, helpers.php, bootstrap.php, config.php
 database/
   schema.sql      Databaseschema
 public/
-  assets/         CSS en vanilla JavaScript
+  assets/         CSS (designsysteem) en JavaScript
   index.php       Front controller/router
-storage/          SQLite-database (niet in Git)
-setup.php         Eenmalige installatie
+storage/
+  database.sqlite Wordt automatisch aangemaakt (niet in Git)
+  uploads/        Geüploade afbeeldingen/video's (niet in Git)
 ```
 
-Nieuwe onderdelen zoals teams, verenigingen, programma, puntentelling, nieuws en betalingen kunnen als eigen tabellen, controllers en views worden toegevoegd. Houd de front controller klein en plaats domeinlogica bij voorkeur in nieuwe services of repositories onder `app/`.
+Nieuwe onderdelen (extra socialintegraties, notificaties, categorieën, gebruikers) kunnen als eigen tabellen, controllers en views worden toegevoegd. Houd de front controller klein en plaats domeinlogica bij voorkeur in nieuwe services onder `app/`.

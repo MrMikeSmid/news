@@ -16,8 +16,8 @@ function require_admin(): array
 {
     $user = admin_user();
     if (!$user) {
-        flash('error', 'Log eerst in om het beheer te openen.');
-        redirect('admin/login');
+        flash('error', 'Log eerst in.');
+        redirect('login');
     }
     return $user;
 }
