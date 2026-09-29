@@ -284,19 +284,6 @@ input[type=file] { font-size: 13px; }
 .login-card p.sub { color: var(--text-muted); font-size: 14px; margin: 0 0 24px; }
 .login-card form { text-align: left; }
 
-/* ---------- Composer ---------- */
-.composer .field { margin-bottom: 12px; }
-.composer-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
-.composer-attach { display: flex; gap: 6px; }
-.attach-label {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 7px 12px; border-radius: 999px; border: 1px solid var(--border);
-  font-size: 12.5px; font-weight: 600; color: var(--text-muted); cursor: pointer;
-}
-.attach-label:hover { background: var(--bg-inset); }
-.attach-label input { display: none; }
-.file-chip { font-size: 12px; color: var(--accent); margin-top: 4px; }
-
 /* ---------- Wall ---------- */
 .wall-grid { display: flex; flex-direction: column; gap: 14px; }
 .post-card { padding: 16px 18px; }
@@ -309,6 +296,9 @@ input[type=file] { font-size: 13px; }
 .post-body { color: var(--text-muted); font-size: 14px; white-space: pre-line; margin: 0 0 10px; }
 .post-media { border-radius: var(--radius-sm); overflow: hidden; margin-bottom: 10px; border: 1px solid var(--border); background: var(--bg-inset); }
 .post-media img, .post-media video { width: 100%; max-height: 480px; object-fit: cover; }
+.post-media-embed { position: relative; padding-top: 56.25%; height: 0; overflow: hidden; border-radius: var(--radius-sm); margin-bottom: 10px; border: 1px solid var(--border); background: #000; }
+.post-media-embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.badge-youtube { background: var(--danger-bg); color: var(--danger); border-color: currentColor; }
 .post-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .post-link { font-size: 13px; font-weight: 600; color: var(--accent); display: inline-flex; align-items: center; gap: 5px; }
 

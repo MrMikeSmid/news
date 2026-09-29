@@ -5,29 +5,6 @@
   </div>
 </div>
 
-<div class="card card-pad composer" style="margin-bottom:20px">
-  <form method="post" action="<?= e(url('wall/post')) ?>" enctype="multipart/form-data">
-    <?= csrf_field() ?>
-    <div class="field">
-      <label for="body">Nieuw bericht</label>
-      <textarea id="body" name="body" placeholder="Wat wil je delen op je wall?"></textarea>
-    </div>
-    <div class="field">
-      <label for="link">Link (optioneel)</label>
-      <input type="url" id="link" name="link" placeholder="https://…">
-    </div>
-    <div class="composer-actions">
-      <div class="composer-attach">
-        <label class="attach-label"><?= icon('image') ?> Afbeelding<input type="file" name="image" accept="image/png,image/jpeg,image/gif,image/webp"></label>
-        <label class="attach-label"><?= icon('video') ?> Video<input type="file" name="video" accept="video/mp4,video/webm,video/quicktime"></label>
-      </div>
-      <button class="btn btn-primary" type="submit"><?= icon('send') ?> Plaatsen</button>
-    </div>
-    <div class="file-chip" data-for="image"></div>
-    <div class="file-chip" data-for="video"></div>
-  </form>
-</div>
-
 <?php if (count($categories) > 1): ?>
 <div class="filter-bar">
   <a class="filter-pill<?= $activeCategory === '' ? ' active' : '' ?>" href="<?= e(url('wall')) ?>">Alles</a>
@@ -42,7 +19,7 @@
     <div class="card empty-state">
       <?php echo icon('wall', 'icon-lg'); ?>
       <h3>Nog geen berichten</h3>
-      <p>Voeg een bron toe bij <a href="<?= e(url('sources')) ?>" style="color:var(--accent);font-weight:600">Bronnen</a> of plaats hierboven je eerste bericht.</p>
+      <p>Voeg een bron toe bij <a href="<?= e(url('sources')) ?>" style="color:var(--accent);font-weight:600">Bronnen</a> om je wall te vullen.</p>
     </div>
   <?php endif; ?>
 

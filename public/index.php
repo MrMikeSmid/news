@@ -28,7 +28,6 @@ $routes = [
     'POST' => [
         '/login' => fn () => login_page(),
         '/logout' => fn () => logout(),
-        '/wall/post' => fn () => create_manual_post(),
         '/sources' => fn () => create_source(),
         '/sources/refresh-all' => fn () => refresh_all_sources(),
         '/blogs' => fn () => blog_create(),

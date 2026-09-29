@@ -23,6 +23,7 @@ function fetch_source(array $source): array
         $dom->registerNamespace('atom', 'http://www.w3.org/2005/Atom');
         $dom->registerNamespace('media', 'http://search.yahoo.com/mrss/');
         $dom->registerNamespace('content', 'http://purl.org/rss/1.0/modules/content/');
+        $dom->registerNamespace('yt', 'http://www.youtube.com/xml/schemas/2015');
 
         $nodes = $dom->query('//item');
         if ($nodes->length === 0) {
@@ -102,7 +103,7 @@ function load_feed_dom(string $xml): DOMDocument
 
 function parse_feed_item(DOMXPath $dom, DOMElement $node): ?array
 {
-    $title = trim(feed_text($dom, $node, 'title'));
+    $title = trim(feed_text($dom, $node, 'title') ?: feed_text($dom, $node, 'atom:title'));
     $link = feed_link($dom, $node);
     $guid = trim(feed_text($dom, $node, 'guid') ?: feed_text($dom, $node, 'atom:id') ?: $link ?: $title);
 
@@ -114,13 +115,22 @@ function parse_feed_item(DOMXPath $dom, DOMElement $node): ?array
         ?: feed_text($dom, $node, 'content:encoded')
         ?: feed_text($dom, $node, 'atom:summary')
         ?: feed_text($dom, $node, 'atom:content')
+        ?: feed_descendant_text($dom, $node, 'media:description')
         ?: '';
 
     $publishedRaw = feed_text($dom, $node, 'pubDate') ?: feed_text($dom, $node, 'atom:published') ?: feed_text($dom, $node, 'atom:updated');
     $timestamp = $publishedRaw ? strtotime($publishedRaw) : false;
     $published = $timestamp ? gmdate('Y-m-d H:i:s', $timestamp) : gmdate('Y-m-d H:i:s');
 
-    [$imagePath, $videoPath, $mediaType] = feed_media($dom, $node, $description);
+    $youtubeId = trim(feed_text($dom, $node, 'yt:videoId')) ?: extract_youtube_id($link);
+
+    if ($youtubeId) {
+        $imagePath = 'https://i.ytimg.com/vi/' . $youtubeId . '/hqdefault.jpg';
+        $videoPath = 'https://www.youtube-nocookie.com/embed/' . $youtubeId;
+        $mediaType = 'youtube';
+    } else {
+        [$imagePath, $videoPath, $mediaType] = feed_media($dom, $node, $description);
+    }
 
     $plainBody = trim(strip_tags(html_entity_decode($description, ENT_QUOTES, 'UTF-8')));
     $plainBody = preg_replace('/\s+/', ' ', $plainBody) ?? $plainBody;
@@ -147,6 +157,35 @@ function feed_text(DOMXPath $dom, DOMElement $node, string $tag): string
         return (string) $result->item(0)->textContent;
     }
     return '';
+}
+
+function feed_descendant_text(DOMXPath $dom, DOMElement $node, string $tag): string
+{
+    $result = $dom->query('.//' . $tag, $node);
+    if ($result && $result->length > 0) {
+        return (string) $result->item(0)->textContent;
+    }
+    return '';
+}
+
+function extract_youtube_id(string $url): ?string
+{
+    if ($url === '') {
+        return null;
+    }
+    $patterns = [
+        '#youtube\.com/watch\?[^#]*\bv=([A-Za-z0-9_-]{6,})#i',
+        '#youtu\.be/([A-Za-z0-9_-]{6,})#i',
+        '#youtube\.com/shorts/([A-Za-z0-9_-]{6,})#i',
+        '#youtube(?:-nocookie)?\.com/embed/([A-Za-z0-9_-]{6,})#i',
+        '#youtube\.com/v/([A-Za-z0-9_-]{6,})#i',
+    ];
+    foreach ($patterns as $pattern) {
+        if (preg_match($pattern, $url, $matches)) {
+            return $matches[1];
+        }
+    }
+    return null;
 }
 
 function feed_link(DOMXPath $dom, DOMElement $node): string
@@ -187,21 +226,23 @@ function feed_media(DOMXPath $dom, DOMElement $node, string $description): array
         }
     }
 
-    $mediaContents = $dom->query('media:content', $node);
+    $mediaContents = $dom->query('.//media:content', $node);
     foreach ($mediaContents as $media) {
         $url = $media->getAttribute('url');
         $medium = $media->getAttribute('medium');
         $type = $media->getAttribute('type');
-        if ($url === '') {
+        if ($url === '' || $type === 'application/x-shockwave-flash') {
             continue;
         }
         if ($medium === 'video' || str_starts_with($type, 'video/') || preg_match($videoExtensions, $url)) {
             return [null, $url, 'video'];
         }
-        return [$url, null, 'image'];
+        if ($medium === 'image' || str_starts_with($type, 'image/') || preg_match('/\.(jpe?g|png|gif|webp)(\?.*)?$/i', $url)) {
+            return [$url, null, 'image'];
+        }
     }
 
-    $thumbnails = $dom->query('media:thumbnail', $node);
+    $thumbnails = $dom->query('.//media:thumbnail', $node);
     if ($thumbnails->length > 0) {
         $url = $thumbnails->item(0)->getAttribute('url');
         if ($url !== '') {
