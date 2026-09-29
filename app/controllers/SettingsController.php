@@ -5,13 +5,7 @@ declare(strict_types=1);
 function settings_page(): void
 {
     require_admin();
-    render('settings', [
-        'title' => 'Instellingen',
-        'siteName' => setting('site_name'),
-        'apiEndpoint' => setting('api_endpoint_url'),
-        'apiKey' => setting('api_key'),
-        'cronToken' => setting('cron_token'),
-    ]);
+    render('settings', ['title' => 'Instellingen', 'siteName' => setting('site_name')]);
 }
 
 function settings_update(): void
@@ -20,22 +14,12 @@ function settings_update(): void
     verify_csrf();
 
     $siteName = clean('site_name');
-    $apiEndpoint = clean('api_endpoint_url');
-    $apiKey = clean('api_key');
-
     if ($siteName === '') {
-        flash('error', 'Geef je homebase een naam.');
-        redirect('settings');
-    }
-    if ($apiEndpoint !== '' && !filter_var($apiEndpoint, FILTER_VALIDATE_URL)) {
-        flash('error', 'Het API-endpoint is geen geldige URL.');
+        flash('error', 'Geef je hub een naam.');
         redirect('settings');
     }
 
     set_setting('site_name', mb_substr($siteName, 0, 120));
-    set_setting('api_endpoint_url', $apiEndpoint);
-    set_setting('api_key', $apiKey);
-
     flash('success', 'Instellingen opgeslagen.');
     redirect('settings');
 }
@@ -71,14 +55,5 @@ function settings_password_update(): void
         ->execute(['hash' => password_hash($new, PASSWORD_DEFAULT), 'id' => $user['id']]);
 
     flash('success', 'Wachtwoord gewijzigd.');
-    redirect('settings');
-}
-
-function settings_regenerate_cron_token(): void
-{
-    require_admin();
-    verify_csrf();
-    set_setting('cron_token', bin2hex(random_bytes(16)));
-    flash('success', 'Nieuwe cron-token gegenereerd.');
     redirect('settings');
 }

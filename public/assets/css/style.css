@@ -343,3 +343,29 @@ table.data-table tr:last-child td { border-bottom: none; }
   .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 30; display: none; }
   .backdrop.open { display: block; }
 }
+
+/* ---------- Publish hub ---------- */
+.chip-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 600; border: 1px solid var(--border); color: var(--text-muted); background: var(--surface); }
+.chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--dot, var(--accent)); }
+.chip-published { border-color: var(--success); color: var(--success); }
+.chip-failed { border-color: var(--danger); color: var(--danger); }
+.badge-published, .badge-ready { background: var(--success-bg); color: var(--success); border-color: currentColor; }
+.badge-failed { background: var(--danger-bg); color: var(--danger); border-color: currentColor; }
+.channel-toggle { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--surface); font-size: 13px; font-weight: 600; cursor: pointer; margin: 0; }
+.channel-toggle::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--dot); }
+.channel-toggle input { display: none; }
+.channel-toggle.on { border-color: var(--accent); background: var(--accent-soft); }
+.channel-card { margin-bottom: 12px; }
+.channel-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.channel-head .grow { flex: 1; min-width: 0; }
+.channel-head .title { font-weight: 600; font-size: 14px; }
+.channel-head .sub { font-size: 12.5px; color: var(--text-faint); }
+.counter { font-size: 13px; font-weight: 700; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.counter.near { color: #b7791f; }
+.counter.over { color: var(--danger); }
+.issues { list-style: none; margin: 0 0 10px; padding: 0; }
+.issues li { font-size: 12.5px; color: var(--danger); padding: 2px 0; }
+.issues li::before { content: "• "; }
+.post-media { border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border); background: var(--bg-inset); }
+.list-row { color: inherit; }

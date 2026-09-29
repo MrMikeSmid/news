@@ -3,11 +3,10 @@
 declare(strict_types=1);
 
 require dirname(__DIR__) . '/app/bootstrap.php';
-require_once dirname(__DIR__) . '/app/fetcher.php';
+require_once dirname(__DIR__) . '/app/platforms.php';
 require_once dirname(__DIR__) . '/app/controllers/AuthController.php';
-require_once dirname(__DIR__) . '/app/controllers/WallController.php';
-require_once dirname(__DIR__) . '/app/controllers/SourceController.php';
-require_once dirname(__DIR__) . '/app/controllers/BlogController.php';
+require_once dirname(__DIR__) . '/app/controllers/AppController.php';
+require_once dirname(__DIR__) . '/app/controllers/PostController.php';
 require_once dirname(__DIR__) . '/app/controllers/SettingsController.php';
 require_once dirname(__DIR__) . '/app/controllers/MediaController.php';
 
@@ -16,24 +15,17 @@ $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 $routes = [
     'GET' => [
-        '/' => fn () => redirect(admin_user() ? 'wall' : 'login'),
+        '/' => fn () => redirect(admin_user() ? 'apps' : 'login'),
         '/login' => fn () => login_page(),
-        '/wall' => fn () => wall_page(),
-        '/sources' => fn () => sources_page(),
-        '/blogs' => fn () => blogs_page(),
-        '/blogs/new' => fn () => blog_new(),
+        '/apps' => fn () => apps_page(),
         '/settings' => fn () => settings_page(),
-        '/cron/fetch' => fn () => cron_fetch(),
     ],
     'POST' => [
         '/login' => fn () => login_page(),
         '/logout' => fn () => logout(),
-        '/sources' => fn () => create_source(),
-        '/sources/refresh-all' => fn () => refresh_all_sources(),
-        '/blogs' => fn () => blog_create(),
+        '/apps' => fn () => app_create(),
         '/settings' => fn () => settings_update(),
         '/settings/password' => fn () => settings_password_update(),
-        '/settings/cron-token' => fn () => settings_regenerate_cron_token(),
     ],
 ];
 
@@ -42,41 +34,26 @@ if (isset($routes[$method][$path])) {
     exit;
 }
 
-if ($method === 'GET' && preg_match('#^/media/([A-Za-z0-9._-]+)$#', $path, $m)) {
-    serve_media($m[1]);
-    exit;
-}
-if ($method === 'GET' && preg_match('#^/blogs/(\d+)/edit$#', $path, $m)) {
-    blog_edit((int) $m[1]);
-    exit;
-}
-if ($method === 'POST' && preg_match('#^/blogs/(\d+)$#', $path, $m)) {
-    blog_update((int) $m[1]);
-    exit;
-}
-if ($method === 'POST' && preg_match('#^/blogs/(\d+)/delete$#', $path, $m)) {
-    blog_delete((int) $m[1]);
-    exit;
-}
-if ($method === 'POST' && preg_match('#^/blogs/(\d+)/send$#', $path, $m)) {
-    blog_send((int) $m[1]);
-    exit;
-}
-if ($method === 'POST' && preg_match('#^/posts/(\d+)/delete$#', $path, $m)) {
-    delete_post((int) $m[1]);
-    exit;
-}
-if ($method === 'POST' && preg_match('#^/sources/(\d+)/toggle$#', $path, $m)) {
-    toggle_source((int) $m[1]);
-    exit;
-}
-if ($method === 'POST' && preg_match('#^/sources/(\d+)/delete$#', $path, $m)) {
-    delete_source((int) $m[1]);
-    exit;
-}
-if ($method === 'POST' && preg_match('#^/sources/(\d+)/refresh$#', $path, $m)) {
-    refresh_source((int) $m[1]);
-    exit;
+$dynamic = [
+    ['GET', '#^/media/([A-Za-z0-9._-]+)$#', fn (string $f) => serve_media($f)],
+    ['GET', '#^/apps/(\d+)$#', fn (string $id) => app_show((int) $id)],
+    ['POST', '#^/apps/(\d+)/delete$#', fn (string $id) => app_delete((int) $id)],
+    ['POST', '#^/apps/(\d+)/channels$#', fn (string $id) => channel_create((int) $id)],
+    ['GET', '#^/apps/(\d+)/posts/new$#', fn (string $id) => post_new((int) $id)],
+    ['POST', '#^/apps/(\d+)/posts$#', fn (string $id) => post_create((int) $id)],
+    ['POST', '#^/channels/(\d+)/toggle$#', fn (string $id) => channel_toggle((int) $id)],
+    ['POST', '#^/channels/(\d+)/delete$#', fn (string $id) => channel_delete((int) $id)],
+    ['GET', '#^/posts/(\d+)/edit$#', fn (string $id) => post_edit((int) $id)],
+    ['POST', '#^/posts/(\d+)$#', fn (string $id) => post_update((int) $id)],
+    ['POST', '#^/posts/(\d+)/delete$#', fn (string $id) => post_delete((int) $id)],
+    ['POST', '#^/posts/(\d+)/publish$#', fn (string $id) => post_publish((int) $id)],
+];
+
+foreach ($dynamic as [$verb, $pattern, $handler]) {
+    if ($method === $verb && preg_match($pattern, $path, $m)) {
+        $handler($m[1]);
+        exit;
+    }
 }
 
 abort(404, 'De pagina die je zoekt bestaat niet.');

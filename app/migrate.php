@@ -2,12 +2,32 @@
 
 declare(strict_types=1);
 
+const SCHEMA_VERSION = 2;
+
+function schema_version(): int
+{
+    try {
+        $value = db()->query("SELECT value FROM settings WHERE key = 'schema_version'")->fetchColumn();
+        return $value === false ? 0 : (int) $value;
+    } catch (Throwable) {
+        return 0;
+    }
+}
+
 function run_migrations(): void
 {
     global $config;
 
-    $schema = file_get_contents(dirname(__DIR__) . '/database/schema.sql');
-    db()->exec($schema);
+    db()->exec('CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)');
+
+    if (schema_version() < SCHEMA_VERSION) {
+        db()->exec('DROP TABLE IF EXISTS post_channels');
+        db()->exec('DROP TABLE IF EXISTS posts');
+        db()->exec('DROP TABLE IF EXISTS sources');
+        db()->exec('DROP TABLE IF EXISTS blogs');
+    }
+
+    db()->exec(file_get_contents(dirname(__DIR__) . '/database/schema.sql'));
 
     $count = (int) db()->query('SELECT COUNT(*) FROM admin_users')->fetchColumn();
     if ($count === 0) {
@@ -18,20 +38,10 @@ function run_migrations(): void
         ]);
     }
 
-    $defaults = [
-        'site_name' => 'Mijn Homebase',
-        'api_endpoint_url' => '',
-        'api_key' => '',
-        'cron_token' => bin2hex(random_bytes(16)),
-    ];
-    foreach ($defaults as $key => $value) {
-        $exists = db()->prepare('SELECT 1 FROM settings WHERE key = :key');
-        $exists->execute(['key' => $key]);
-        if (!$exists->fetchColumn()) {
-            $insert = db()->prepare('INSERT INTO settings (key, value) VALUES (:key, :value)');
-            $insert->execute(['key' => $key, 'value' => $value]);
-        }
+    if (setting('site_name') === '') {
+        set_setting('site_name', 'Publish Hub');
     }
+    set_setting('schema_version', (string) SCHEMA_VERSION);
 
     if (!is_dir($config['uploads_path'])) {
         mkdir($config['uploads_path'], 0775, true);

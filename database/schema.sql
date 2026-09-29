@@ -10,46 +10,46 @@ CREATE TABLE IF NOT EXISTS settings (
     value TEXT
 );
 
-CREATE TABLE IF NOT EXISTS sources (
+CREATE TABLE IF NOT EXISTS apps (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
-    type TEXT NOT NULL DEFAULT 'rss',
-    category TEXT NOT NULL DEFAULT 'nieuws',
-    url TEXT,
+    description TEXT,
     color TEXT NOT NULL DEFAULT '#da7756',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS channels (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    app_id INTEGER NOT NULL REFERENCES apps(id) ON DELETE CASCADE,
+    platform TEXT NOT NULL,
+    label TEXT NOT NULL,
+    handle TEXT,
+    webhook_url TEXT,
     is_active INTEGER NOT NULL DEFAULT 1,
-    last_fetched_at TEXT,
-    last_error TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE TABLE IF NOT EXISTS posts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    source_id INTEGER REFERENCES sources(id) ON DELETE CASCADE,
-    guid TEXT,
+    app_id INTEGER NOT NULL REFERENCES apps(id) ON DELETE CASCADE,
     title TEXT,
-    body TEXT,
+    body TEXT NOT NULL DEFAULT '',
     link TEXT,
     image_path TEXT,
-    video_path TEXT,
-    media_type TEXT NOT NULL DEFAULT 'text',
-    published_at TEXT NOT NULL DEFAULT (datetime('now')),
-    created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    UNIQUE (source_id, guid)
-);
-
-CREATE INDEX IF NOT EXISTS idx_posts_published_at ON posts (published_at DESC);
-
-CREATE TABLE IF NOT EXISTS blogs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    slug TEXT NOT NULL UNIQUE,
-    excerpt TEXT,
-    content TEXT NOT NULL,
-    cover_image TEXT,
     status TEXT NOT NULL DEFAULT 'draft',
-    sent_at TEXT,
-    send_status TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS post_channels (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+    channel_id INTEGER NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+    title TEXT,
+    body TEXT,
+    subreddit TEXT,
+    status TEXT NOT NULL DEFAULT 'draft',
+    result TEXT,
+    published_at TEXT,
+    UNIQUE (post_id, channel_id)
 );

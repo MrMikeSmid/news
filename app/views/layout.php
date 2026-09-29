@@ -2,20 +2,26 @@
 /** @var string $content */
 /** @var string $title */
 $user = admin_user();
-$siteName = database_is_ready() ? setting('site_name', 'Homebase') : 'Homebase';
+$siteName = database_is_ready() ? setting('site_name', 'Publish Hub') : 'Publish Hub';
 $currentPath = request_path();
 $navItems = [
-    ['path' => 'wall', 'label' => 'Wall', 'icon' => 'wall'],
-    ['path' => 'sources', 'label' => 'Bronnen', 'icon' => 'rss'],
-    ['path' => 'blogs', 'label' => 'Blogs', 'icon' => 'newspaper'],
-    ['path' => 'settings', 'label' => 'Instellingen', 'icon' => 'settings'],
+    ['path' => 'apps', 'label' => 'Apps', 'icon' => 'wall', 'match' => ['/apps', '/posts']],
+    ['path' => 'settings', 'label' => 'Instellingen', 'icon' => 'settings', 'match' => ['/settings']],
 ];
+$isActive = static function (array $item) use ($currentPath): bool {
+    foreach ($item['match'] as $prefix) {
+        if ($currentPath === $prefix || str_starts_with($currentPath, $prefix . '/')) {
+            return true;
+        }
+    }
+    return false;
+};
 ?><!doctype html>
 <html lang="nl">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title><?= e($title ?? 'Homebase') ?> · <?= e($siteName) ?></title>
+<title><?= e($title ?? 'Publish Hub') ?> · <?= e($siteName) ?></title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
@@ -32,7 +38,7 @@ $navItems = [
     </div>
     <nav class="nav">
       <?php foreach ($navItems as $item): ?>
-      <a class="nav-item<?= $currentPath === '/' . $item['path'] ? ' active' : '' ?>" href="<?= e(url($item['path'])) ?>">
+      <a class="nav-item<?= $isActive($item) ? ' active' : '' ?>" href="<?= e(url($item['path'])) ?>">
         <?= icon($item['icon']) ?><span><?= e($item['label']) ?></span>
       </a>
       <?php endforeach; ?>

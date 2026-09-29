@@ -22,7 +22,7 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 
-if (!database_is_ready()) {
+if (!database_is_ready() || schema_version() < SCHEMA_VERSION) {
     run_migrations();
 }
 

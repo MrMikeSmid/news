@@ -53,14 +53,10 @@ function clean(string $key): string
 
 function setting(string $key, string $default = ''): string
 {
-    static $cache = [];
-    if (array_key_exists($key, $cache)) {
-        return $cache[$key];
-    }
     $statement = db()->prepare('SELECT value FROM settings WHERE key = :key');
     $statement->execute(['key' => $key]);
     $value = $statement->fetchColumn();
-    return $cache[$key] = ($value === false ? $default : (string) $value);
+    return $value === false ? $default : (string) $value;
 }
 
 function set_setting(string $key, string $value): void
