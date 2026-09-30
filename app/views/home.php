@@ -1,11 +1,12 @@
 <div class="page-header">
   <div>
-    <h1>Homebase</h1>
-    <p>Een nieuw begin.</p>
+    <h1><?= e($config['app_name']) ?></h1>
+    <p class="sub">Een nieuw begin.</p>
   </div>
 </div>
 
 <div class="card empty-state">
-  <?= icon('sparkle', 'icon-lg') ?>
-  <h3>Welkom</h3>
+  <div class="empty-state-icon"><?= icon('box') ?></div>
+  <h2>Welkom</h2>
+  <p>Hier is nog geen inhoud.</p>
 </div>

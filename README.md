@@ -2,14 +2,18 @@
 
 Lege PHP-basis voor een nieuw appdoel, met de bestaande huisstijl behouden.
 
+De stijlgids in `AGENTS.md` is leidend voor alle nieuwe interfacewijzigingen.
+De basis bevat alleen de startpagina; navigatie naar toekomstige functies wordt
+toegevoegd zodra het nieuwe appdoel bekend is.
+
 ## Huisstijl
 
-- Inter voor lopende tekst en bediening; Source Serif 4 voor koppen.
-- Warme achtergrond (`#FAF9F5`), zachte randen en terracotta accent (`#D97757`).
+- Inter voor lopende tekst en bediening; Fraunces voor koppen.
+- Warme achtergrond (`#FAF9F6`), zachte randen en terracotta accent (`#D97757`).
 - Kaarten met afgeronde hoeken, rustige typografie en SVG-iconen.
-- Zijbalk op desktop en inklapbaar menu op mobiel (breekpunt 860px).
+- Vaste onderbalk op mobiel en zijbalk op desktop vanaf 1024px.
 - Automatische donkere modus via de systeemvoorkeur.
-- Bestaande CSS-componenten blijven beschikbaar voor nieuwe schermen.
+- CSS-componenten volgen de meegeleverde stijlgids in `AGENTS.md`.
 
 De stijlen staan in `public/assets/css/style.css`, de paginabasis in
 `app/views/layout.php` en de startpagina in `app/views/home.php`.

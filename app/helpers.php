@@ -15,7 +15,9 @@ function url(string $path = ''): string
 
 function asset(string $path): string
 {
-    return url('public/assets/' . ltrim($path, '/'));
+    $relative = 'public/assets/' . ltrim($path, '/');
+    $version = filemtime(dirname(__DIR__) . '/' . $relative);
+    return url($relative) . '?v=' . $version;
 }
 
 function request_path(): string
@@ -31,6 +33,7 @@ function request_path(): string
 
 function render(string $view, array $data = []): void
 {
+    global $config;
     extract($data, EXTR_SKIP);
     ob_start();
     require __DIR__ . '/views/' . $view . '.php';
