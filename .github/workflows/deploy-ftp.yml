@@ -24,6 +24,20 @@ jobs:
       - name: Repository ophalen
         uses: actions/checkout@v4
 
+      - name: PHP voor mail instellen
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_sqlite, sodium, mbstring, imap
+          tools: composer:v2
+
+      - name: Maildependencies installeren en controleren
+        run: |
+          composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+          composer validate --strict
+          find app public bin tests -name '*.php' -print0 | xargs -0 -n1 php -l
+          php tests/domain.php
+
       - name: FTP-client installeren
         run: sudo apt-get update && sudo apt-get install --yes lftp
 
@@ -105,6 +119,8 @@ jobs:
             --exclude='(^|/)\.github(/|$)' \
             --exclude='(^|/)\.gitkeep$' \
             --exclude='^storage(/|$)' \
+            --exclude='^(tests|bin|plugin)(/|$)' \
+            --exclude='(^|/)AGENTS\.md$' \
             ./ "$ftp_server_dir"
           bye
           EOF_LFTP

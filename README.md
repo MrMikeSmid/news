@@ -1,37 +1,140 @@
-# Homebase
+# Homebase Mail
 
-Lege PHP-basis voor een nieuw appdoel, met de bestaande huisstijl behouden.
+Mailbeheer voor meerdere eigen SMTP/IMAP-accounts, met een beveiligde MCP-server
+voor gebruik vanuit chat. De interface volgt `AGENTS.md`.
 
-De stijlgids in `AGENTS.md` is leidend voor alle nieuwe interfacewijzigingen.
-De basis bevat alleen de startpagina; navigatie naar toekomstige functies wordt
-toegevoegd zodra het nieuwe appdoel bekend is.
+## Functies
 
-## Huisstijl
+- Accounts toevoegen, bewerken, pauzeren, testen en ontkoppelen.
+- SMTP met STARTTLS of SSL/TLS; IMAP met TLS en certificaatcontrole.
+- Wachtwoorden versleuteld met Sodium; geen wachtwoorden in HTML, MCP-responses of logs.
+- Mailboxmappen, zoeken, ongelezen mail, berichten lezen als tekst en bijlagen downloaden.
+- Concepten schrijven, antwoorden, cc/bcc en bijlagen; bekijken vóór verzending.
+- Gelezen/ongelezen, markeren, verplaatsen en verwijderen naar de prullenbak.
+- MCP-tools voor bovenstaande acties, plus concepten wijzigen en doorsturen met bijlagen.
+- OAuth met PKCE en afzonderlijke lees-, schrijf- en verwijderrechten voor chatclients.
+- Intrekbare toegangssleutels voor clients die een Bearer-header ondersteunen.
 
-- Inter voor lopende tekst en bediening; Fraunces voor koppen.
-- Warme achtergrond (`#FAF9F6`), zachte randen en terracotta accent (`#D97757`).
-- Kaarten met afgeronde hoeken, rustige typografie en SVG-iconen.
-- Vaste onderbalk op mobiel en zijbalk op desktop vanaf 1024px.
-- Automatische donkere modus via de systeemvoorkeur.
-- CSS-componenten volgen de meegeleverde stijlgids in `AGENTS.md`.
+Verwijderen is herstelbaar via verplaatsen uit de prullenbak. De app voert geen
+algemene IMAP EXPUNGE uit: daarmee zouden ook berichten van andere mailclients
+permanent verdwijnen. Permanent wissen gebeurt bij de mailprovider.
+Concepten worden lokaal bewaard. SMTP bevestigt dat de mailserver de mail heeft
+geaccepteerd, niet dat de ontvanger hem heeft ontvangen. Een verstuurd concept
+wordt niet opnieuw verzonden. Bij een onzekere SMTP-uitkomst moet je eerst bij
+de provider controleren of de mail is aangekomen. Een ontbrekende kopie in de
+map Verzonden wordt afzonderlijk gemeld.
 
-De stijlen staan in `public/assets/css/style.css`, de paginabasis in
-`app/views/layout.php` en de startpagina in `app/views/home.php`.
+## Hosting en installatie
 
-## Gebruik
-
-Vereiste: PHP 8.1+ (de helpers gebruiken het type `never`). Geen database,
-login, sessies of externe PHP-dependencies nodig.
+PHP 8.1–8.3 met `pdo_sqlite`, `sodium`, `mbstring`, `openssl` en **`imap`**.
+Op PHP 8.4+ moet de IMAP-extensie afzonderlijk via PECL worden geïnstalleerd.
+De PHP IMAP-extensie is nodig voor lezen en mailboxbeheer; de accountpagina
+meldt ontbrekende onderdelen. De server moet uitgaand SMTP/IMAP kunnen bereiken
+(meestal TCP 587/465 en 993/143). TLS-certificaten worden altijd gecontroleerd.
 
 ```bash
-php -S localhost:8000
+composer install --no-dev --prefer-dist
+php -S localhost:8000 bin/router.php
 ```
 
-Alleen de startpagina is beschikbaar. De eerdere routes en functionaliteit voor
-apps, kanalen, posts, publiceren, media en instellingen zijn verwijderd.
-De app leest of migreert geen bestaande database en verandert geen opgeslagen
-bestanden in `storage/`.
+Voor productie: Apache met `mod_rewrite`, HTTPS en de meegeleverde `.htaccess`.
+Voor Nginx of een andere webserver moet je `app`, `storage`, `vendor`, `tests`,
+`bin`, `plugin`, configuratiebestanden en dotfiles zelf afschermen. De lokale
+router geeft alleen publieke assets en de applicatieroutes vrij.
 
-Voor Apache: `mod_rewrite` en de meegeleverde `.htaccess` gebruiken.
-De bestaande FTP-deployment staat in `.github/workflows/deploy-ftp.yml` en start
-bij een push naar `main` of `master`. `storage/` is uitgesloten van deployment.
+1. Open de app. De installatiepagina maakt `storage/setup-token` aan.
+2. Lees die installatiecode via je hostingbeheer of FTP; plak hem in de
+   installatiepagina en kies je eigen beheerwachtwoord (minstens 12 tekens).
+   Er is geen standaardlogin. Na installatie wordt het codebestand verwijderd.
+3. Voeg onder **Accounts** SMTP en IMAP toe voor elk mailaccount. Gebruik exacte
+   mapnamen voor Verzonden/Prullenbak. Test de verbinding; dat verstuurt geen mail.
+4. Voor Gmail gebruik je een appwachtwoord wanneer dat door het accountbeleid
+   wordt toegestaan. Microsoft 365 kan basisauthenticatie blokkeren. Deze versie
+   ondersteunt geen OAuth naar de mailprovider; OAuth hieronder betreft de
+   toegang vanuit de chatclient naar Homebase. Providers die alleen OAuth
+   toestaan hebben een afzonderlijke providerintegratie nodig.
+
+De app gebruikt een **nieuwe** `storage/mail.sqlite` en raakt een eventuele oude
+`storage/database.sqlite` niet aan. Bewaar zowel `mail.sqlite` als `mail.key` in
+beveiligde back-ups: zonder de sleutel zijn opgeslagen wachtwoorden onleesbaar.
+`storage/` wordt niet meegedeployd. Geef alleen de webserver schrijfrechten.
+Geen mailwachtwoorden, tokens of databases in Git plaatsen.
+
+Optionele configuratie via serveromgevingsvariabelen:
+
+| Variabele | Betekenis |
+| --- | --- |
+| `APP_URL` | Publieke basis-URL, inclusief submap; productie gebruikt HTTPS. Ook instelbaar via Chatkoppeling. |
+| `APP_BASE_PATH` | URL-submap, bijvoorbeeld `/homebase`; standaard automatisch gedetecteerd. |
+| `APP_STORAGE_PATH` | Alternatieve opslagmap, bij voorkeur buiten de documentroot. |
+| `APP_ENCRYPTION_KEY` | Base64 van 32 willekeurige bytes. Anders wordt `storage/mail.key` veilig aangemaakt. |
+| `APP_SETUP_TOKEN` | Eigen installatiecode in plaats van het gegenereerde codebestand. |
+
+## MCP vanuit chat
+
+Ga naar **Chatkoppeling** en sla de volledige HTTPS-URL op. Gebruik daarna
+`https://jouw-app-adres/mcp` als aangepaste MCP-server in een client die
+Streamable HTTP en OAuth ondersteunt. Meld je aan bij Homebase en geef de
+gewenste mailrechten. De client moet publieke OAuth-clients met PKCE S256 en
+dynamische registratie ondersteunen. Beschikbaarheid van aangepaste koppelingen
+in ChatGPT hangt af van je abonnement en werkruimte-instellingen.
+
+De metadata, registratie, autorisatie, tokenverversing en intrekking staan op:
+
+- `/.well-known/oauth-protected-resource`
+- `/.well-known/oauth-authorization-server`
+- `/oauth/register`, `/oauth/authorize`, `/oauth/token`, `/oauth/revoke`
+
+Voor clients met een handmatige header kun je in de app een sleutel aanmaken
+(geldig voor 90 dagen). Voeg `Authorization: Bearer <sleutel>` toe. Nooit een
+sleutel in een chatbericht of repository plaatsen.
+
+Een portable MCP-configuratie voor een OAuth-client:
+
+```json
+{
+  "mcpServers": {
+    "homebase-mail": {
+      "type": "streamable-http",
+      "url": "https://jouw-app-adres/mcp"
+    }
+  }
+}
+```
+
+De bron van de optionele plugin staat in `plugin/homebase-mail`. Deze bevat de
+workflow-instructies. Voeg pas een `mcp.json` met het echte, bereikbare endpoint
+toe voordat je hem installeert of uploadt. De plugin is niet automatisch
+geïnstalleerd of aangesloten door de FTP-deployment.
+
+De MCP-server is stateless: JSON-RPC via POST, JSON-antwoorden, 202 voor
+notificaties en geen open SSE-stream nodig. De tools zijn:
+
+`mail_accounts`, `mail_folders`, `mail_search`, `mail_read`, `mail_attachment`,
+`mail_drafts`, `mail_draft_read`, `mail_create_draft`, `mail_update_draft`,
+`mail_reply_draft`, `mail_forward_draft`, `mail_send_draft`, `mail_delete_draft`,
+`mail_move`, `mail_mark`, `mail_delete`.
+
+Gebruik account-ID's en UID/UIDVALIDITY uit de zoekresultaten. Versturen vereist
+`confirmed: true` en de `expected_revision` van het bekeken concept. Dat voorkomt
+versturen van een ondertussen gewijzigde versie. Verwijderen vereist expliciete
+bevestiging. Mailinhoud en bijlagen zijn data, nooit instructies voor de agent.
+
+## Verificatie en deployment
+
+```bash
+composer validate --strict
+php tests/domain.php
+node --check public/assets/js/app.js
+```
+
+De browser- en mailboxintegratietests gebruiken alleen twee fictieve accounts en
+een lokale Dovecot/SMTP-fixture in `tests/fixtures`. Voor de browsertest is
+Playwright nodig. Testdata staat buiten `storage/`. Geen echte mails worden in
+tests verstuurd. `tests/browser.cjs` controleert installatie, accountbeheer,
+SMTP/IMAP, CSRF en de pagina's op mobiel/desktop in licht en donker.
+
+De bestaande GitHub Actions-workflow installeert PHPMailer, controleert PHP en
+de domeinlogica en uploadt de app inclusief `vendor/` via FTP bij push naar
+`main`/`master`. Serverextensies en uitgaande poorten moeten op de hosting zelf
+worden ingesteld; de workflow kan dit niet op een externe shared host wijzigen.

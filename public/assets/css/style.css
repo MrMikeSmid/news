@@ -189,3 +189,44 @@ tr:last-child td { border-bottom: 0; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Mailbeheer: dezelfde tokens en componenten als de stijlgids. */
+.form-grid { display: grid; grid-template-columns: 1fr; gap: 0 14px; margin-top: 18px; }
+.actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.actions form { margin: 0; }
+.actions .checkbox-row { margin: 0; }
+.form-actions, .pagination { margin-top: 20px; }
+.card-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.detail-list { margin: 14px 0; font-size: 13.5px; }
+.detail-list > div { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-top: 1px solid var(--border); }
+.detail-list dt { color: var(--text-muted); flex-shrink: 0; }
+.detail-list dd { margin: 0; text-align: right; font-weight: 600; min-width: 0; }
+.message-list { padding: 0; overflow: hidden; }
+.message-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 18px 20px; color: var(--text); transition: background .15s; }
+.message-row + .message-row { border-top: 1px solid var(--border); }
+.message-row:hover { background: var(--surface-sunken); }
+.message-row > div { min-width: 0; }
+.message-row .badge { flex-shrink: 0; }
+.message-subject { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.search-form { margin-bottom: 20px; }
+.mail-body { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; }
+.danger-details { margin-top: 20px; }
+summary { cursor: pointer; font-size: 14px; font-weight: 600; color: var(--text-muted); min-height: 40px; }
+summary:hover { color: var(--accent-text); }
+details[open] summary { margin-bottom: 14px; }
+.dashboard-link { display: block; color: var(--text); }
+.user-box { border-top: 1px solid var(--border); padding-top: 12px; }
+.logout-button { border: 0; width: 100%; font-family: var(--font-ui); background: transparent; }
+.topbar-logout { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; color: var(--text-muted); background: transparent; border: 0; border-radius: var(--radius-sm); }
+.topbar-logout:hover { background: var(--surface-sunken); }
+.auth-page { display: flex; min-height: 100vh; align-items: center; justify-content: center; padding: 22px 20px; background: radial-gradient(circle at 20% 0%, var(--accent-soft), transparent 55%), var(--bg); }
+.auth-card { width: 100%; max-width: 380px; padding: 36px 32px; border-radius: var(--radius-lg); box-shadow: var(--shadow); }
+.auth-card .brand { justify-content: center; margin-bottom: 22px; }
+.auth-card .brand-mark { width: 36px; height: 36px; border-radius: 10px; }
+.auth-card h1 { font-size: 22px; text-align: center; }
+.auth-card > .sub { text-align: center; margin-bottom: 22px; }
+.setup-hint { font-size: 13px; color: var(--text-muted); }
+code { font-family: monospace; font-size: 13.5px; }
+.examples { padding-left: 18px; font-size: 14px; }
+.examples li + li { margin-top: 8px; }
+@media (min-width: 640px) { .form-grid { grid-template-columns: 1fr 1fr; } }
