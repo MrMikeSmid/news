@@ -28,6 +28,11 @@ const store = process.env.TEST_STORAGE || '/tmp/news-mail-store';
   if(await page.locator('.account-card').count()===0) {
   for(const user of ['alpha','beta']) {
     await page.goto(root+'/mail/accounts/new');
+    await page.locator('#incoming_protocol').selectOption('imap');
+    await page.locator('#smtp_port').fill('587');
+    await page.locator('#smtp_security').selectOption('tls');
+    await page.locator('[name=smtp_accept_all]').uncheck();
+    await page.locator('[name=imap_accept_all]').uncheck();
     await page.locator('#label').fill(user==='alpha'?'Werk':'Privé');
     await page.locator('#email').fill(user+'@example.test');
     await page.locator('#from_name').fill('Test '+user);

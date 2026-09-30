@@ -15,6 +15,7 @@ try {
     $data=['label'=>'Werk','email'=>'alpha@example.test','from_name'=>'Mike','smtp_host'=>'smtp.example.test','smtp_port'=>587,'smtp_security'=>'tls','smtp_user'=>'alpha','smtp_password'=>$password,'imap_host'=>'imap.example.test','imap_port'=>993,'imap_security'=>'ssl','imap_user'=>'alpha','imap_password'=>$password,'sent_folder'=>'Sent','trash_folder'=>'Trash','active'=>true];
     $id=account_save(null,$data);
     $stored=account_get($id);
+    check($stored['incoming_protocol']==='imap' && (int)$stored['imap_verify_cert']===1 && (int)$stored['smtp_verify_cert']===1,'Existing defaults changed');
     check($stored['smtp_password']!==$password,'Password stored in plaintext');
     check(unseal($stored['smtp_password'])===$password,'Encryption round trip failed');
     check(!str_contains(json_encode(public_account($stored)),'password'),'Secrets exposed in MCP');

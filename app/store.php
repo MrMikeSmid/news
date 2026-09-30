@@ -25,6 +25,12 @@ function mail_db(): PDO
       CREATE TABLE IF NOT EXISTS mail_refresh_tokens (hash TEXT PRIMARY KEY, client_id TEXT NOT NULL, scope TEXT NOT NULL, expires INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS mail_login_attempts (key TEXT PRIMARY KEY, attempts INTEGER NOT NULL, reset_at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS mail_audit (id INTEGER PRIMARY KEY AUTOINCREMENT, action TEXT NOT NULL, account_id INTEGER, item_id TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);');
+    $columns=array_column($db->query('PRAGMA table_info(mail_accounts)')->fetchAll(),'name');
+    foreach(['incoming_protocol'=>"TEXT NOT NULL DEFAULT 'imap'",'smtp_verify_cert'=>'INTEGER NOT NULL DEFAULT 1','imap_verify_cert'=>'INTEGER NOT NULL DEFAULT 1'] as $name=>$definition) {
+        if(!in_array($name,$columns,true))$db->exec('ALTER TABLE mail_accounts ADD COLUMN '.$name.' '.$definition);
+    }
+    $db->exec('CREATE TABLE IF NOT EXISTS mail_pop_state (account_id INTEGER NOT NULL REFERENCES mail_accounts(id) ON DELETE CASCADE, uidvalidity INTEGER NOT NULL, uid INTEGER NOT NULL, seen INTEGER NOT NULL DEFAULT 0, flagged INTEGER NOT NULL DEFAULT 0, trashed INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(account_id,uidvalidity,uid))');
+    $db->exec('CREATE TABLE IF NOT EXISTS mail_pop_ids(id INTEGER PRIMARY KEY AUTOINCREMENT, account_id INTEGER NOT NULL REFERENCES mail_accounts(id) ON DELETE CASCADE, uidvalidity INTEGER NOT NULL, uidl TEXT NOT NULL, UNIQUE(account_id,uidvalidity,uidl))');
     @chmod(storage_path('mail.sqlite'), 0600);
     return $db;
 }
@@ -50,6 +56,7 @@ function save_mail_setting(string $key, string $value): void
 function secret_file(string $name, int $bytes): string
 {
     $path = storage_path($name);
+    if(!is_dir(dirname($path))&&!mkdir(dirname($path),0700,true)&&!is_dir(dirname($path)))throw new RuntimeException('Opslag is niet beschikbaar.');
     $handle = fopen($path, 'c+b');
     if (!$handle || !flock($handle, LOCK_EX)) throw new RuntimeException('Kon beveiligde opslag niet openen.');
     try {

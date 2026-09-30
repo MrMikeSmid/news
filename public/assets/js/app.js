@@ -1,4 +1,9 @@
 (function () {
+  var protocol = document.getElementById('incoming_protocol');
+  var port = document.getElementById('imap_port');
+  if (protocol && port) protocol.addEventListener('change', function () {
+    if (['110', '143', '993', '995'].includes(port.value)) port.value = protocol.value === 'pop3' ? '995' : '993';
+  });
   document.querySelectorAll('form[data-loading]').forEach(function (form) {
     form.addEventListener('submit', function (event) {
       var button = event.submitter;

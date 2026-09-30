@@ -5,7 +5,7 @@
 <?php else: foreach($accounts as $a):?>
 <article class="card account-card">
   <div class="card-heading"><div><h2><?=e($a['label'])?></h2><p class="sub"><?=e($a['email'])?></p></div><span class="badge <?=$a['active']?'badge-success':''?>"><?=$a['active']?'Actief':'Gepauzeerd'?></span></div>
-  <dl class="detail-list"><div><dt>Versturen</dt><dd><?=e($a['smtp_host'])?> · <?=(int)$a['smtp_port']?> · <?=e(strtoupper($a['smtp_security']))?></dd></div><div><dt>Ontvangen</dt><dd><?=e($a['imap_host'])?> · <?=(int)$a['imap_port']?> · <?=e(strtoupper($a['imap_security']))?></dd></div></dl>
+  <dl class="detail-list"><div><dt>Versturen</dt><dd><?=e($a['smtp_host'])?> · <?=(int)$a['smtp_port']?> · <?=e(strtoupper($a['smtp_security']))?></dd></div><div><dt>Ontvangen</dt><dd><?=e(strtoupper($a['incoming_protocol']))?> · <?=e($a['imap_host'])?> · <?=(int)$a['imap_port']?> · <?=e(strtoupper($a['imap_security']))?></dd></div></dl>
   <div class="actions"><a class="btn btn-secondary btn-sm" href="<?=e(url('mail/accounts/'.$a['id']))?>"><?=icon('edit')?>Bewerken</a><form method="post" action="<?=e(url('mail/accounts/'.$a['id'].'/test'))?>" data-loading><?=csrf_field()?><button class="btn btn-secondary btn-sm" type="submit"><?=icon('refresh')?>Verbinding testen</button></form><a class="btn btn-secondary btn-sm" href="<?=e(url('mail?account='.$a['id']))?>">Mailbox openen</a></div>
 </article>
 <?php endforeach;endif;?>

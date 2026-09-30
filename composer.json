@@ -4,11 +4,12 @@
   "type": "project",
   "require": {
     "php": "^8.1",
+    "ext-mbstring": "*",
     "ext-pdo": "*",
     "ext-pdo_sqlite": "*",
     "ext-sodium": "*",
-    "ext-mbstring": "*",
-    "phpmailer/phpmailer": "^6.10"
+    "phpmailer/phpmailer": "^6.10",
+    "zbateson/mail-mime-parser": "^3.0"
   },
   "suggest": {
     "ext-imap": "Nodig voor mailboxen lezen, zoeken, verplaatsen en verwijderen"

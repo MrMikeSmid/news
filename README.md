@@ -1,12 +1,12 @@
 # Homebase Mail
 
-Mailbeheer voor meerdere eigen SMTP/IMAP-accounts, met een beveiligde MCP-server
+Mailbeheer voor meerdere eigen SMTP/POP3/IMAP-accounts, met een beveiligde MCP-server
 voor gebruik vanuit chat. De interface volgt `AGENTS.md`.
 
 ## Functies
 
 - Accounts toevoegen, bewerken, pauzeren, testen en ontkoppelen.
-- SMTP met STARTTLS of SSL/TLS; IMAP met TLS en certificaatcontrole.
+- SMTP met STARTTLS of SSL/TLS; POP3 of IMAP met TLS. Per verbinding kun je alle SSL-certificaten accepteren.
 - Wachtwoorden versleuteld met Sodium; geen wachtwoorden in HTML, MCP-responses of logs.
 - Mailboxmappen, zoeken, ongelezen mail, berichten lezen als tekst en bijlagen downloaden.
 - Concepten schrijven, antwoorden, cc/bcc en bijlagen; bekijken vóór verzending.
@@ -26,11 +26,11 @@ map Verzonden wordt afzonderlijk gemeld.
 
 ## Hosting en installatie
 
-PHP 8.1–8.3 met `pdo_sqlite`, `sodium`, `mbstring`, `openssl` en **`imap`**.
+PHP 8.1–8.3 met `pdo_sqlite`, `sodium`, `mbstring` en `openssl`. Voor IMAP-accounts is ook **`imap`** nodig.
 Op PHP 8.4+ moet de IMAP-extensie afzonderlijk via PECL worden geïnstalleerd.
-De PHP IMAP-extensie is nodig voor lezen en mailboxbeheer; de accountpagina
-meldt ontbrekende onderdelen. De server moet uitgaand SMTP/IMAP kunnen bereiken
-(meestal TCP 587/465 en 993/143). TLS-certificaten worden altijd gecontroleerd.
+POP3 werkt zonder de PHP IMAP-extensie; de accountpagina
+meldt ontbrekende onderdelen. De server moet uitgaand SMTP/POP3/IMAP kunnen bereiken
+(meestal TCP 587/465, 995/110 en 993/143). TLS-certificaten worden gecontroleerd tenzij je per account “Alle SSL-certificaten accepteren” inschakelt.
 
 ```bash
 composer install --no-dev --prefer-dist
@@ -46,7 +46,7 @@ router geeft alleen publieke assets en de applicatieroutes vrij.
 2. Lees die installatiecode via je hostingbeheer of FTP; plak hem in de
    installatiepagina en kies je eigen beheerwachtwoord (minstens 12 tekens).
    Er is geen standaardlogin. Na installatie wordt het codebestand verwijderd.
-3. Voeg onder **Accounts** SMTP en IMAP toe voor elk mailaccount. Gebruik exacte
+3. Voeg onder **Accounts** SMTP en POP3/IMAP toe voor elk mailaccount. Gebruik exacte
    mapnamen voor Verzonden/Prullenbak. Test de verbinding; dat verstuurt geen mail.
 4. Voor Gmail gebruik je een appwachtwoord wanneer dat door het accountbeleid
    wordt toegestaan. Microsoft 365 kan basisauthenticatie blokkeren. Deze versie
@@ -138,3 +138,17 @@ De bestaande GitHub Actions-workflow installeert PHPMailer, controleert PHP en
 de domeinlogica en uploadt de app inclusief `vendor/` via FTP bij push naar
 `main`/`master`. Serverextensies en uitgaande poorten moeten op de hosting zelf
 worden ingesteld; de workflow kan dit niet op een externe shared host wijzigen.
+
+## POP3 zoals in je mailclient
+
+Voor `info@mikesmid.nl`: inkomend `mail.mikesmid.nl`, POP3, SSL/TLS, poort 995;
+uitgaand dezelfde server, SMTP, SSL/TLS, poort 465. Gebruik het volledige
+e-mailadres als gebruikersnaam. “Alle SSL-certificaten accepteren” kan voor
+beide verbindingen worden aangezet. Bestaande accounts behouden hun huidige
+protocol en certificaatcontrole; bewerk het account om dit te wijzigen.
+
+POP3 ondersteunt alleen de inbox op de server. De prullenbak, gelezen-status
+en markeringen zijn lokaal; mail blijft op de server staan, zoals bij “Nooit
+automatisch verwijderen” in je client. Er is geen POP3-map Verzonden; verstuurde
+mails blijven als lokaal verzendbewijs bewaard. Gebruik IMAP voor gedeelde
+mappen en status tussen mailclients.

@@ -15,6 +15,7 @@ function smtp_client(array $account): PHPMailer
     $mail->Username = $account['smtp_user'];
     $mail->Password = unseal($account['smtp_password']);
     $mail->SMTPSecure = $account['smtp_security'] === 'ssl' ? PHPMailer::ENCRYPTION_SMTPS : PHPMailer::ENCRYPTION_STARTTLS;
+    if(empty($account['smtp_verify_cert']))$mail->SMTPOptions=['ssl'=>['verify_peer'=>false,'verify_peer_name'=>false,'allow_self_signed'=>true]];
     $mail->Timeout = 15;
     $mail->getSMTPInstance()->Timelimit = 30;
     $mail->CharSet = 'UTF-8';
@@ -25,7 +26,8 @@ function smtp_client(array $account): PHPMailer
 
 function imap_path(array $account, string $folder): string
 {
-    $flags = $account['imap_security'] === 'ssl' ? '/imap/ssl' : '/imap/tls';
+    $flags='/imap'.($account['imap_security']==='ssl'?'/ssl':'/tls');
+    if(empty($account['imap_verify_cert']))$flags.='/novalidate-cert';
     return '{'.$account['imap_host'].':'.$account['imap_port'].$flags.'}'.imap_utf7_encode(mailbox_name($folder));
 }
 function imap_connect_account(array $account, string $folder = 'INBOX')
@@ -33,7 +35,7 @@ function imap_connect_account(array $account, string $folder = 'INBOX')
     if (!function_exists('imap_open')) throw new RuntimeException('Lezen en beheren vereist de PHP IMAP-extensie op je hosting.');
     imap_timeout(IMAP_OPENTIMEOUT, 15); imap_timeout(IMAP_READTIMEOUT, 20); imap_timeout(IMAP_WRITETIMEOUT, 20);
     $connection = @imap_open(imap_path($account, $folder), $account['imap_user'], unseal($account['imap_password']), 0, 1, ['DISABLE_AUTHENTICATOR' => 'GSSAPI']);
-    if (!$connection) { imap_errors(); imap_alerts(); throw new RuntimeException('IMAP-verbinding mislukt. Controleer server, poort, beveiliging en appwachtwoord.'); }
+    if (!$connection) { imap_errors(); imap_alerts(); throw new RuntimeException(strtoupper($account['incoming_protocol']??'imap').'-verbinding mislukt. Controleer server, poort, beveiliging en appwachtwoord.'); }
     return $connection;
 }
 function with_mailbox(int $accountId, string $folder, callable $callback): mixed
@@ -47,7 +49,7 @@ function mailbox_validity($connection, array $account, string $folder): int
 {
     $status = imap_status($connection, imap_path($account, $folder), SA_UIDVALIDITY);
     if (!$status) throw new RuntimeException('De mapstatus kon niet worden opgehaald.');
-    return (int)$status->uidvalidity;
+    return max(1,(int)$status->uidvalidity);
 }
 function require_message($connection, array $account, string $folder, int $uid, int $validity): void
 {
@@ -65,6 +67,7 @@ function decode_header(string $value): string
 }
 function list_folders(int $accountId): array
 {
+    if(account_get($accountId,true)['incoming_protocol']==='pop3')return [['name'=>'INBOX','attributes'=>0],['name'=>'Trash','attributes'=>0]];
     return with_mailbox($accountId, 'INBOX', function($c,$a) {
         $prefix=substr(imap_path($a,'INBOX'),0,-strlen('INBOX'));
         $folders=imap_getmailboxes($c,$prefix,'*') ?: [];
@@ -74,6 +77,7 @@ function list_folders(int $accountId): array
 function search_mail(int $accountId, string $folder, string $text = '', bool $unread = false, int $limit = 25, int $offset = 0): array
 {
     if ($limit < 1 || $limit > 100 || $offset < 0 || strlen($text)>500 || preg_match('/[\x00-\x1f]/',$text)) throw new InvalidArgumentException('Ongeldige zoekopdracht of paginagrootte.');
+    if(account_get($accountId,true)['incoming_protocol']==='pop3')return pop_search($accountId,$folder,$text,$unread,$limit,$offset);
     return with_mailbox($accountId,$folder,function($c,$a) use($folder,$text,$unread,$limit,$offset) {
         $criteria=$unread ? 'UNSEEN UNDELETED' : 'UNDELETED';
         if ($text!=='') $criteria.=' TEXT "'.addcslashes($text,'"\\').'"';
@@ -108,6 +112,7 @@ function decoded_part($c, int $uid, array $part): string
 }
 function read_mail(int $accountId,string $folder,int $uid,int $validity): array
 {
+    if(account_get($accountId,true)['incoming_protocol']==='pop3')return pop_read($accountId,$folder,$uid,$validity);
     return with_mailbox($accountId,$folder,function($c,$a) use($folder,$uid,$validity) {
         require_message($c,$a,$folder,$uid,$validity);
         $overview=imap_fetch_overview($c,(string)$uid,FT_UID)[0]??null;
@@ -135,6 +140,7 @@ function address_list(array $addresses): array
 }
 function mail_attachment(int $accountId,string $folder,int $uid,int $validity,string $section): array
 {
+    if(account_get($accountId,true)['incoming_protocol']==='pop3')return pop_attachment($accountId,$folder,$uid,$validity,$section);
     return with_mailbox($accountId,$folder,function($c,$a) use($folder,$uid,$validity,$section) {
         require_message($c,$a,$folder,$uid,$validity);
         $structure=imap_fetchstructure($c,$uid,FT_UID);
@@ -150,6 +156,7 @@ function mail_attachment(int $accountId,string $folder,int $uid,int $validity,st
 }
 function move_mail(int $accountId,string $folder,int $uid,int $validity,string $target): array
 {
+    if(account_get($accountId,true)['incoming_protocol']==='pop3')return pop_move($accountId,$folder,$uid,$validity,$target);
     mailbox_name($target);
     if ($folder===$target) throw new InvalidArgumentException('Kies een andere doelmap.');
     return with_mailbox($accountId,$folder,function($c,$a) use($folder,$uid,$validity,$target) {
@@ -163,11 +170,13 @@ function move_mail(int $accountId,string $folder,int $uid,int $validity,string $
 function delete_mail(int $accountId,string $folder,int $uid,int $validity): array
 {
     $a=account_get($accountId,true);
-    if ($folder===$a['trash_folder']) throw new InvalidArgumentException('Dit bericht staat al in de prullenbak.');
-    return move_mail($accountId,$folder,$uid,$validity,$a['trash_folder']);
+    $trash=$a['incoming_protocol']==='pop3'?'Trash':$a['trash_folder'];
+    if ($folder===$trash) throw new InvalidArgumentException('Dit bericht staat al in de prullenbak.');
+    return move_mail($accountId,$folder,$uid,$validity,$trash);
 }
 function mark_mail(int $accountId,string $folder,int $uid,int $validity,bool $read,bool $flagged): array
 {
+    if(account_get($accountId,true)['incoming_protocol']==='pop3')return pop_mark($accountId,$folder,$uid,$validity,$read,$flagged);
     return with_mailbox($accountId,$folder,function($c,$a) use($folder,$uid,$validity,$read,$flagged) {
         require_message($c,$a,$folder,$uid,$validity);
         foreach(['\\Seen'=>$read,'\\Flagged'=>$flagged] as $flag=>$on) {
@@ -237,6 +246,7 @@ function send_draft(int $id, ?int $expectedRevision = null): array
     query('UPDATE mail_drafts SET status="sent" WHERE id=?',[$id]);
     $saved=false;
     try {
+        if($account['incoming_protocol']==='pop3')throw new RuntimeException('POP3 heeft geen map Verzonden.');
         $c=imap_connect_account($account);
         try { $saved=(bool)@imap_append($c,imap_path($account,$account['sent_folder']),$mail->getSentMIMEMessage(),'\\Seen'); }
         finally { imap_errors();imap_alerts();imap_close($c); }
@@ -252,7 +262,17 @@ function connection_test(int $accountId): array
     try { if(!$smtp->smtpConnect()) throw new RuntimeException(); }
     catch(Throwable) { throw new RuntimeException('SMTP-verbinding mislukt. Controleer server, poort, beveiliging en appwachtwoord.'); }
     finally { $smtp->smtpClose(); }
-    $imap=imap_connect_account($account);
-    imap_close($imap);
-    return ['smtp'=>true,'imap'=>true];
+    if($account['incoming_protocol']==='pop3'){$pop=new Pop3Mailbox($account);$pop->ids();$pop->close();}
+    else{$imap=imap_connect_account($account);imap_close($imap);}
+    return ['smtp'=>true,'incoming'=>true,'protocol'=>$account['incoming_protocol']];
+}
+
+function pop_state(int $accountId,int $validity,int $uid): array
+{
+    return query('SELECT seen,flagged,trashed FROM mail_pop_state WHERE account_id=? AND uidvalidity=? AND uid=?',[$accountId,$validity,$uid])->fetch() ?: ['seen'=>0,'flagged'=>0,'trashed'=>0];
+}
+function pop_update(int $accountId,int $validity,int $uid,array $changes): void
+{
+    $state=array_merge(pop_state($accountId,$validity,$uid),$changes);
+    query('INSERT INTO mail_pop_state(account_id,uidvalidity,uid,seen,flagged,trashed) VALUES(?,?,?,?,?,?) ON CONFLICT(account_id,uidvalidity,uid) DO UPDATE SET seen=excluded.seen,flagged=excluded.flagged,trashed=excluded.trashed',[$accountId,$validity,$uid,$state['seen'],$state['flagged'],$state['trashed']]);
 }

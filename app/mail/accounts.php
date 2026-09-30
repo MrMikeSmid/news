@@ -10,7 +10,7 @@ function account_get(int $id, bool $activeOnly = false): array
 }
 function public_account(array $account): array
 {
-    return array_intersect_key($account, array_flip(['id', 'label', 'email', 'from_name', 'active']));
+    return array_intersect_key($account, array_flip(['id', 'label', 'email', 'from_name', 'active', 'incoming_protocol']));
 }
 function account_list(): array { return query('SELECT * FROM mail_accounts ORDER BY label,id')->fetchAll(); }
 function mail_host(string $host): string
@@ -30,6 +30,9 @@ function account_save(?int $id, array $data): int
     $required = ['label','email','smtp_host','smtp_user','imap_host','imap_user'];
     foreach ($required as $key) if (trim((string)($data[$key] ?? '')) === '') throw new InvalidArgumentException('Vul alle verplichte velden in.');
     if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL) || preg_match('/[\r\n]/', $data['from_name'] ?? '')) throw new InvalidArgumentException('Gebruik een geldig afzenderadres en een naam zonder regeleinden.');
+    $data['incoming_protocol']=$data['incoming_protocol']??$old['incoming_protocol']??'imap';
+    if(!in_array($data['incoming_protocol'],['imap','pop3'],true))throw new InvalidArgumentException('Kies IMAP of POP3.');
+    foreach(['smtp','imap'] as $protocol)$data[$protocol.'_verify_cert']=!empty($data[$protocol.'_verify_cert']??($old[$protocol.'_verify_cert']??true))?1:0;
     $data['smtp_host'] = mail_host($data['smtp_host']);
     $data['imap_host'] = mail_host($data['imap_host']);
     foreach (['smtp', 'imap'] as $protocol) {
@@ -38,14 +41,14 @@ function account_save(?int $id, array $data): int
         $data[$protocol.'_port'] = $port;
         if (!in_array($data[$protocol.'_security'] ?? '', ['tls','ssl'], true)) throw new InvalidArgumentException('Kies STARTTLS of SSL/TLS.');
         $password = (string) ($data[$protocol.'_password'] ?? '');
-        if ($password === '' && !$old) throw new InvalidArgumentException('Vul de SMTP- en IMAP-wachtwoorden in.');
+        if ($password === '' && !$old) throw new InvalidArgumentException('Vul de wachtwoorden voor versturen en ontvangen in.');
         $data[$protocol.'_password'] = $password !== '' ? seal($password) : $old[$protocol.'_password'];
     }
     foreach (['sent_folder','trash_folder'] as $key) $data[$key] = mailbox_name($data[$key] ?? '');
     foreach (['label','from_name','smtp_user','imap_user'] as $key) {
         if (strlen($data[$key] ?? '') > 200 || preg_match('/[\x00-\x1f]/', $data[$key] ?? '')) throw new InvalidArgumentException('Een naam of gebruikersnaam is te lang of bevat ongeldige tekens.');
     }
-    $keys = ['label','email','from_name','smtp_host','smtp_port','smtp_security','smtp_user','smtp_password','imap_host','imap_port','imap_security','imap_user','imap_password','sent_folder','trash_folder','active'];
+    $keys = ['label','email','from_name','smtp_host','smtp_port','smtp_security','smtp_user','smtp_password','imap_host','imap_port','imap_security','imap_user','imap_password','sent_folder','trash_folder','active','incoming_protocol','smtp_verify_cert','imap_verify_cert'];
     $data['active'] = empty($data['active']) ? 0 : 1;
     $values = array_map(fn($key) => $data[$key], $keys);
     if ($id) query('UPDATE mail_accounts SET '.implode(',', array_map(fn($key)=>$key.'=?', $keys)).' WHERE id=?', [...$values, $id]);
@@ -56,7 +59,9 @@ function account_save(?int $id, array $data): int
 function mail_requirements(): array
 {
     $missing = [];
-    foreach (['pdo_sqlite','sodium','mbstring','openssl','imap'] as $extension) if (!extension_loaded($extension)) $missing[]=$extension;
+    foreach (['pdo_sqlite','sodium','mbstring','openssl'] as $extension) if (!extension_loaded($extension)) $missing[]=$extension;
     if (!class_exists(\PHPMailer\PHPMailer\PHPMailer::class)) $missing[]='PHPMailer (composer install)';
+    if (!extension_loaded('imap') && query("SELECT COUNT(*) FROM mail_accounts WHERE active=1 AND incoming_protocol='imap'")->fetchColumn()) $missing[]='imap (voor IMAP-accounts)';
+    if (!class_exists(\ZBateson\MailMimeParser\Message::class)) $missing[]='MailMimeParser (composer install)';
     return $missing;
 }

@@ -42,11 +42,12 @@ function account_action(?int $id,string $action): void
     check_csrf();
     try {
         if($action==='save') {
-            $data=[];foreach(['label','email','from_name','smtp_host','smtp_port','smtp_security','smtp_user','imap_host','imap_port','imap_security','imap_user','sent_folder','trash_folder'] as $key)$data[$key]=post_string($key);
+            $data=[];foreach(['incoming_protocol','label','email','from_name','smtp_host','smtp_port','smtp_security','smtp_user','imap_host','imap_port','imap_security','imap_user','sent_folder','trash_folder'] as $key)$data[$key]=post_string($key);
             foreach(['smtp_password','imap_password'] as $key){$data[$key]=$_POST[$key]??'';if(!is_string($data[$key]))throw new InvalidArgumentException('Ongeldig wachtwoord.');}
+            $data['smtp_verify_cert']=!isset($_POST['smtp_accept_all']);$data['imap_verify_cert']=!isset($_POST['imap_accept_all']);
             $data['active']=isset($_POST['active']);
             account_save($id,$data);flash_message('Mailaccount opgeslagen.');
-        } elseif($action==='test') { connection_test((int)$id);flash_message('SMTP en IMAP zijn verbonden. Er is geen testmail verstuurd.'); }
+        } elseif($action==='test') { connection_test((int)$id);flash_message('SMTP en '.strtoupper(account_get((int)$id)['incoming_protocol']).' zijn verbonden. Er is geen testmail verstuurd.'); }
         elseif($action==='delete') {
             account_get((int)$id);
             if(($_POST['confirmed']??'')!=='1')throw new InvalidArgumentException('Bevestig dat je dit account wilt ontkoppelen.');
