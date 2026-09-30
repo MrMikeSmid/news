@@ -11,7 +11,7 @@
 </div>
 
 <div class="section-title">Publish-kanalen</div>
-<div class="card" style="margin-bottom:14px">
+<div class="card" style="margin-bottom:12px">
   <?php if (!count($channels)): ?>
     <div class="empty-state"><?= icon('send', 'icon-lg') ?><h3>Nog geen kanalen</h3><p>Koppel hieronder je eerste platform.</p></div>
   <?php endif; ?>
@@ -31,7 +31,9 @@
   <?php endforeach; ?>
 </div>
 
-<div class="card card-pad" style="margin-bottom:24px">
+<details class="collapse" style="margin-bottom:24px">
+<summary class="btn btn-secondary"><?= icon('plus') ?> Kanaal koppelen</summary>
+<div class="card card-pad" style="margin-top:12px">
   <form method="post" action="<?= e(url('apps/' . $app['id'] . '/channels')) ?>">
     <?= csrf_field() ?>
     <div class="form-row">
@@ -43,9 +45,10 @@
     <div class="field"><label for="webhook_url">Webhook-URL (optioneel)</label>
       <input type="url" id="webhook_url" name="webhook_url" placeholder="https://hooks.example.com/…">
       <p class="hint">Bij publiceren sturen we de kant-en-klare post als JSON hierheen (bijv. Zapier, Make of n8n). Zonder webhook plaats je handmatig.</p></div>
-    <button class="btn btn-secondary" type="submit"><?= icon('plus') ?> Kanaal koppelen</button>
+    <button class="btn btn-secondary" type="submit"><?= icon('check') ?> Koppelen</button>
   </form>
 </div>
+</details>
 
 <div class="section-title">Posts (<?= count($posts) ?>)</div>
 <div class="card" style="margin-bottom:24px">

@@ -5,8 +5,9 @@
   </div>
 </div>
 
-<div class="card card-pad" style="margin-bottom:20px">
-  <div class="section-title">Nieuwe app</div>
+<details class="collapse">
+<summary class="btn btn-primary"><?= icon('plus') ?> Nieuwe app</summary>
+<div class="card card-pad" style="margin-top:12px">
   <form method="post" action="<?= e(url('apps')) ?>">
     <?= csrf_field() ?>
     <div class="form-row">
@@ -14,9 +15,10 @@
       <div class="field"><label for="description">Omschrijving</label><input type="text" id="description" name="description" placeholder="Waar gaat de app over?"></div>
       <div class="field" style="flex:0 0 80px"><label for="color">Kleur</label><input type="color" id="color" name="color" value="#da7756"></div>
     </div>
-    <button class="btn btn-primary" type="submit"><?= icon('plus') ?> App aanmaken</button>
+    <button class="btn btn-primary" type="submit"><?= icon('check') ?> App aanmaken</button>
   </form>
 </div>
+</details>
 
 <div class="card">
   <?php if (!count($apps)): ?>

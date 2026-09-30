@@ -369,3 +369,9 @@ table.data-table tr:last-child td { border-bottom: none; }
 .issues li::before { content: "• "; }
 .post-media { border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border); background: var(--bg-inset); }
 .list-row { color: inherit; }
+
+/* ---------- Inklapbare formulieren ---------- */
+.collapse { margin-bottom: 20px; }
+.collapse > summary { list-style: none; cursor: pointer; user-select: none; }
+.collapse > summary::-webkit-details-marker { display: none; }
+.collapse[open] > summary { background: var(--bg-inset); color: var(--text); border-color: var(--border-strong); }
