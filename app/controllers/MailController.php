@@ -69,7 +69,7 @@ function inbox_page(): void
     $accounts=array_filter(account_list(),fn($a)=>$a['active']);
     $id=(int)($_GET['account']??(reset($accounts)['id']??0));$folder=(string)($_GET['folder']??'INBOX');$term=(string)($_GET['q']??'');$offset=max(0,(int)($_GET['offset']??0));
     $error=null;$data=['messages'=>[],'total'=>0];$folders=[];
-    if($id)try { $data=search_mail($id,$folder,$term,!empty($_GET['unread']),25,$offset);$folders=list_folders($id); }
+    if($id)try { $data=search_mail($id,$folder,$term,!empty($_GET['unread']),10,$offset);$folders=list_folders($id); }
     catch(Throwable $e) {$error=$e instanceof InvalidArgumentException||$e instanceof RuntimeException?$e->getMessage():'De mailbox kon niet worden geladen.';}
     render('mail/inbox',['title'=>'Mail','accounts'=>$accounts,'accountId'=>$id,'folder'=>$folder,'term'=>$term,'mailbox'=>$data,'folders'=>$folders,'error'=>$error,'offset'=>$offset]);
 }

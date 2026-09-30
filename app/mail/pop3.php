@@ -64,7 +64,8 @@ final class Pop3Mailbox
     public function raw(int $number,bool $headersOnly=false): string
     {
         if($headersOnly)try{return $this->command('TOP '.$number.' 0',true);}catch(RuntimeException){}
-        return $this->command('RETR '.$number,true);
+        $raw=$this->command('RETR '.$number,true);
+        return $headersOnly?explode("\r\n\r\n",$raw,2)[0]."\r\n\r\n":$raw;
     }
     public function close(): void
     {
@@ -82,22 +83,21 @@ function with_pop(int $accountId,string $folder,callable $callback): mixed
     $a=account_get($accountId,true);$pop=new Pop3Mailbox($a);
     try{return $callback($pop,$a);}finally{$pop->close();}
 }
-function pop_index(Pop3Mailbox $pop,array $a): array
+function pop_uid(array $a,string $uidl): int
 {
-    $index=[];$validity=pop_validity($a);
-    foreach($pop->ids() as $number=>$uidl){
-        query('INSERT INTO mail_pop_ids(account_id,uidvalidity,uidl) VALUES(?,?,?) ON CONFLICT(account_id,uidvalidity,uidl) DO NOTHING',[$a['id'],$validity,$uidl]);
-        $uid=(int)query('SELECT id FROM mail_pop_ids WHERE account_id=? AND uidvalidity=? AND uidl=?',[$a['id'],$validity,$uidl])->fetchColumn();
-        $index[$uid]=$number;
-    }
-    return $index;
+    $validity=pop_validity($a);
+    $uid=query('SELECT id FROM mail_pop_ids WHERE account_id=? AND uidvalidity=? AND uidl=?',[$a['id'],$validity,$uidl])->fetchColumn();
+    if($uid!==false)return (int)$uid;
+    query('INSERT INTO mail_pop_ids(account_id,uidvalidity,uidl) VALUES(?,?,?) ON CONFLICT(account_id,uidvalidity,uidl) DO NOTHING',[$a['id'],$validity,$uidl]);
+    return (int)query('SELECT id FROM mail_pop_ids WHERE account_id=? AND uidvalidity=? AND uidl=?',[$a['id'],$validity,$uidl])->fetchColumn();
 }
 function pop_number(Pop3Mailbox $pop,array $a,string $folder,int $uid,int $validity): int
 {
     if(pop_validity($a)!==$validity)throw new InvalidArgumentException('De accountinstellingen zijn veranderd. Zoek het bericht opnieuw op.');
-    $index=pop_index($pop,$a);
-    if(!isset($index[$uid])||(bool)pop_state((int)$a['id'],$validity,$uid)['trashed']!==($folder==='Trash'))throw new InvalidArgumentException('Dit bericht bestaat niet meer in deze map.');
-    return $index[$uid];
+    $uidl=query('SELECT uidl FROM mail_pop_ids WHERE id=? AND account_id=? AND uidvalidity=?',[$uid,$a['id'],$validity])->fetchColumn();
+    $number=$uidl===false?false:array_search($uidl,$pop->ids(),true);
+    if($number===false||(bool)pop_state((int)$a['id'],$validity,$uid)['trashed']!==($folder==='Trash'))throw new InvalidArgumentException('Dit bericht bestaat niet meer in deze map.');
+    return (int)$number;
 }
 function pop_addresses(Message $message,string $header): array
 {
@@ -117,18 +117,25 @@ function pop_parsed(string $raw,array $a,string $folder,int $uid): array
 function pop_search(int $accountId,string $folder,string $text,bool $unread,int $limit,int $offset): array
 {
     return with_pop($accountId,$folder,function($pop,$a)use($folder,$text,$unread,$limit,$offset){
-        $index=pop_index($pop,$a);arsort($index,SORT_NUMERIC);$validity=pop_validity($a);
-        $index=array_filter($index,function($number,$uid)use($a,$validity,$folder,$unread){$s=pop_state((int)$a['id'],$validity,$uid);return (bool)$s['trashed']===($folder==='Trash')&&(!$unread||!$s['seen']);},ARRAY_FILTER_USE_BOTH);
-        $total=count($index);$limited=false;$messages=[];
-        if($text==='')$index=array_slice($index,$offset,$limit,true);
-        else{ $limited=count($index)>500;$index=array_slice($index,0,500,true); }
-        foreach($index as $uid=>$number){
-            $message=pop_parsed($pop->raw($number,$text===''),$a,$folder,(int)$uid);
+        // UIDL is only a lightweight list of IDs. Register and fetch headers for this segment only.
+        $ids=$pop->ids();krsort($ids,SORT_NUMERIC);$validity=pop_validity($a);
+        $states=[];
+        foreach(query('SELECT i.uidl,s.seen,s.trashed FROM mail_pop_state s JOIN mail_pop_ids i ON i.id=s.uid AND i.account_id=s.account_id AND i.uidvalidity=s.uidvalidity WHERE s.account_id=? AND s.uidvalidity=?',[$a['id'],$validity])->fetchAll() as $state)$states[$state['uidl']]=$state;
+        $ids=array_filter($ids,function($uidl)use($states,$folder,$unread){$s=$states[$uidl]??['seen'=>0,'trashed'=>0];return (bool)$s['trashed']===($folder==='Trash')&&(!$unread||!$s['seen']);});
+        $total=count($ids);$limit=min(10,$limit);$segment=array_slice($ids,$offset,$limit,true);$messages=[];$scanned=0;$started=microtime(true);
+        foreach($segment as $number=>$uidl){
+            if($scanned>0 && microtime(true)-$started>=8)break;
+            $uid=pop_uid($a,$uidl);$scanned++;
+            if($text===''){
+                $cached=query('SELECT headers FROM mail_pop_headers WHERE uid=?',[$uid])->fetchColumn();
+                if($cached===false){$cached=$pop->raw($number,true);query('INSERT INTO mail_pop_headers(uid,headers) VALUES(?,?) ON CONFLICT(uid) DO NOTHING',[$uid,$cached]);}
+                $message=pop_parsed($cached,$a,$folder,$uid);
+            }else $message=pop_parsed($pop->raw($number),$a,$folder,$uid);
             if($text!==''&&!str_contains(mb_strtolower($message['subject'].' '.$message['from'].' '.$message['to'].' '.$message['body']),mb_strtolower($text)))continue;
             unset($message['body'],$message['attachments']);$messages[]=$message;
         }
-        if($text!==''){$total=count($messages);$messages=array_slice($messages,$offset,$limit);}
-        return ['total'=>$total,'offset'=>$offset,'messages'=>$messages,'search_limited'=>$limited];
+        $next=$offset+$scanned;
+        return ['total'=>$text===''?$total:null,'offset'=>$offset,'messages'=>$messages,'scanned'=>$scanned,'has_more'=>$next<$total,'next_offset'=>$next,'segmented_search'=>$text!==''];
     });
 }
 function pop_read(int $accountId,string $folder,int $uid,int $validity): array

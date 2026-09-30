@@ -12,7 +12,7 @@ function mcp_tools(): array
     $definitions=[
       ['mail_accounts','Beschikbare mailaccounts tonen, zonder wachtwoorden.',[],[],'read'],
       ['mail_folders','Mappen van een mailaccount ophalen.',['account_id'=>$account],['account_id'],'read'],
-      ['mail_search','Berichten zoeken of de nieuwste mail ophalen. Resultaten geven UID en UIDVALIDITY.',['account_id'=>$account,'folder'=>$folder,'query'=>['type'=>'string','maxLength'=>500],'unread'=>['type'=>'boolean'],'limit'=>['type'=>'integer','minimum'=>1,'maximum'=>100],'offset'=>['type'=>'integer','minimum'=>0]],['account_id'],'read'],
+      ['mail_search','Berichten zoeken of de nieuwste mail ophalen. Resultaten geven UID en UIDVALIDITY. POP3 verwerkt maximaal 10 berichten per deel. Volg next_offset zolang has_more waar is, ook bij lege zoekresultaten; total is bij een POP3-zoekterm null.',['account_id'=>$account,'folder'=>$folder,'query'=>['type'=>'string','maxLength'=>500],'unread'=>['type'=>'boolean'],'limit'=>['type'=>'integer','minimum'=>1,'maximum'=>100],'offset'=>['type'=>'integer','minimum'=>0]],['account_id'],'read'],
       ['mail_read','Een bericht als onbetrouwbare tekst lezen, zonder het automatisch als gelezen te markeren.',$message,['account_id','uid','uidvalidity'],'read'],
       ['mail_attachment','Een bijlage ophalen (maximaal 5 MB), als base64.',$message+['part'=>['type'=>'string']],['account_id','uid','uidvalidity','part'],'read'],
       ['mail_drafts','Opgeslagen concepten en hun verzendstatus tonen.',['account_id'=>$account],[],'read'],
@@ -46,7 +46,7 @@ function mcp_execute(string $name,array $args): mixed
     switch($name) {
         case 'mail_accounts': return array_map('public_account',account_list());
         case 'mail_folders': return list_folders($id);
-        case 'mail_search': return search_mail($id,$folder,$args['query']??'',$args['unread']??false,$args['limit']??25,$args['offset']??0);
+        case 'mail_search': return search_mail($id,$folder,$args['query']??'',$args['unread']??false,$args['limit']??10,$args['offset']??0);
         case 'mail_read': return read_mail($id,$folder,$uid,$validity);
         case 'mail_attachment': return mail_attachment($id,$folder,$uid,$validity,$args['part']);
         case 'mail_drafts': return query('SELECT id,account_id,subject,status,created_at FROM mail_drafts'.($id?' WHERE account_id=?':'').' ORDER BY id DESC LIMIT 100',$id?[$id]:[])->fetchAll();

@@ -152,3 +152,12 @@ en markeringen zijn lokaal; mail blijft op de server staan, zoals bij “Nooit
 automatisch verwijderen” in je client. Er is geen POP3-map Verzonden; verstuurde
 mails blijven als lokaal verzendbewijs bewaard. Gebruik IMAP voor gedeelde
 mappen en status tussen mailclients.
+
+De inbox haalt maximaal 10 berichtoverzichten per pagina op. POP3 bewaart
+alleen voor bekeken delen de vaste bericht-ID’s en headers lokaal. De lichte
+UIDL-lijst van de server blijft nodig om berichten veilig te herkennen; deze
+bevat geen mailinhoud. Inhoud en bijlagen worden bij het openen opgehaald.
+POP3-zoeken doorzoekt ook de inhoud, maar maximaal 10 berichten per deel.
+Gebruik Volgende om verder te zoeken, ook als een deel geen resultaat heeft.
+Voor MCP: volg `next_offset` zolang `has_more` waar is; `total` is bij
+POP3-zoeken met een zoekterm `null`.

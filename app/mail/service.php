@@ -74,7 +74,7 @@ function list_folders(int $accountId): array
         return array_map(fn($f)=>['name'=>imap_utf7_decode(substr($f->name,strlen($prefix))), 'attributes'=>$f->attributes],$folders);
     });
 }
-function search_mail(int $accountId, string $folder, string $text = '', bool $unread = false, int $limit = 25, int $offset = 0): array
+function search_mail(int $accountId, string $folder, string $text = '', bool $unread = false, int $limit = 10, int $offset = 0): array
 {
     if ($limit < 1 || $limit > 100 || $offset < 0 || strlen($text)>500 || preg_match('/[\x00-\x1f]/',$text)) throw new InvalidArgumentException('Ongeldige zoekopdracht of paginagrootte.');
     if(account_get($accountId,true)['incoming_protocol']==='pop3')return pop_search($accountId,$folder,$text,$unread,$limit,$offset);

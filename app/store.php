@@ -31,6 +31,7 @@ function mail_db(): PDO
     }
     $db->exec('CREATE TABLE IF NOT EXISTS mail_pop_state (account_id INTEGER NOT NULL REFERENCES mail_accounts(id) ON DELETE CASCADE, uidvalidity INTEGER NOT NULL, uid INTEGER NOT NULL, seen INTEGER NOT NULL DEFAULT 0, flagged INTEGER NOT NULL DEFAULT 0, trashed INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(account_id,uidvalidity,uid))');
     $db->exec('CREATE TABLE IF NOT EXISTS mail_pop_ids(id INTEGER PRIMARY KEY AUTOINCREMENT, account_id INTEGER NOT NULL REFERENCES mail_accounts(id) ON DELETE CASCADE, uidvalidity INTEGER NOT NULL, uidl TEXT NOT NULL, UNIQUE(account_id,uidvalidity,uidl))');
+    $db->exec('CREATE TABLE IF NOT EXISTS mail_pop_headers(uid INTEGER PRIMARY KEY REFERENCES mail_pop_ids(id) ON DELETE CASCADE, headers TEXT NOT NULL)');
     @chmod(storage_path('mail.sqlite'), 0600);
     return $db;
 }
