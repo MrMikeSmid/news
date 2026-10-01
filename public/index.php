@@ -28,6 +28,7 @@ $routes = [
         '/' => fn () => dashboard_page(),
         '/login' => fn () => login_page(),
         '/setup' => fn () => setup_page(),
+        '/recover' => fn () => recover_page(),
         '/settings' => fn () => settings_page(),
         '/settings/mail' => fn () => mail_settings_page(),
         '/settings/calendar' => fn () => calendar_settings_page(),
@@ -38,6 +39,7 @@ $routes = [
     'POST' => [
         '/login' => fn () => login_page(),
         '/setup' => fn () => setup_page(),
+        '/recover' => fn () => recover_page(),
         '/logout' => fn () => logout(),
         '/settings/password' => fn () => settings_password_update(),
         '/settings/mail' => fn () => mail_account_save(null),
