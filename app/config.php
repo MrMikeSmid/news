@@ -14,7 +14,6 @@ return [
     'key_path' => getenv('DAGSTART_KEY') ?: dirname(__DIR__) . '/storage/app.key',
     'session_name' => 'dagstart_session',
     'view_cookie' => 'dagstart_key',
-    'recovery_code_hash' => '11798105d06a70c29faded8d67b9185646563fd8c4e9b90e6f6e9189417d6289',
     'slots' => ['morning' => '07:45', 'evening' => '21:00'],
     'kinds' => ['calendar' => 'Agenda', 'tasks' => 'Taken', 'mail' => 'E-mail', 'news' => 'Nieuws'],
 ];
