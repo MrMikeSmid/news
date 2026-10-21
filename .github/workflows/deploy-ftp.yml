@@ -42,6 +42,11 @@ jobs:
             exit 0
           fi
 
+          if [[ ! -f wp-content/db.php || ! -f wp-content/plugins/sqlite-database-integration/load.php ]]; then
+            printf 'Fout: de WordPress SQLite-integratie ontbreekt.\n' >&2
+            exit 1
+          fi
+
           required_variables=(
             FTP_SERVER
             FTP_USERNAME
@@ -110,9 +115,18 @@ jobs:
             --exclude='(^|/)\.github(/|$)' \
             --exclude='(^|/)\.gitkeep$' \
             --exclude='^storage(/|$)' \
+            --exclude='^wp-content(/|$)' \
+            --exclude='^wp-config\.local\.php$' \
             --exclude='^(tests|bin|plugin)(/|$)' \
             --exclude='(^|/)AGENTS\.md$' \
             ./ "$ftp_server_dir"
+
+          # WordPress bewaart hier de SQLite-database, uploads en via het dashboard
+          # geïnstalleerde plugins en thema's. Nooit bestanden op de server wissen.
+          mirror --reverse \
+            --verbose \
+            --parallel=4 \
+            wp-content "$ftp_server_dir/wp-content"
           bye
           EOF_LFTP
 
