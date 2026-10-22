@@ -13,6 +13,7 @@ concurrency:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   deploy:
@@ -23,6 +24,8 @@ jobs:
     steps:
       - name: Repository ophalen
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: FTP-client installeren
         run: sudo apt-get update && sudo apt-get install --yes lftp
@@ -33,6 +36,7 @@ jobs:
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
           FTP_SERVER_DIR: ${{ secrets.FTP_SERVER_DIR }}
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -96,8 +100,66 @@ jobs:
           ftp_password=$(escape_lftp_value "$FTP_PASSWORD")
           ftp_server_dir=$(escape_lftp_value "$FTP_SERVER_DIR")
 
+          # Compare with the last successful deploy, not merely the previous
+          # commit: a failed run must not cause files to be skipped on retry.
+          last_deployed=$(gh api \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/deploy-ftp.yml/runs?branch=${GITHUB_REF_NAME}&status=success&per_page=1" \
+            --jq '.workflow_runs[0].head_sha // empty')
+
+          deploy_file() {
+            local path=$1
+            local remote_path
+            remote_path="${FTP_SERVER_DIR%/}/$path"
+            printf 'mkdir -p "%s"\n' "$(escape_lftp_value "$(dirname "$remote_path")")"
+            printf 'put "%s" -o "%s"\n' "$(escape_lftp_value "$path")" "$(escape_lftp_value "$remote_path")"
+          }
+
+          delete_file() {
+            local remote_path
+            remote_path="${FTP_SERVER_DIR%/}/$1"
+            printf 'rm -f "%s"\n' "$(escape_lftp_value "$remote_path")"
+          }
+
+          included_path() {
+            local path=$1
+            case "$path" in
+              .git/*|.github/*|storage/*|tests/*|bin/*|plugin/*|wp-config.local.php|AGENTS.md|*/AGENTS.md|wp-content/database/*|wp-content/uploads/*)
+                return 1 ;;
+            esac
+            [[ "$path" != *$'\n'* && "$path" != *$'\r'* ]]
+          }
+
           printf 'Deploy naar %s gestart...\n' "$FTP_SERVER_DIR"
 
+          if [[ -n "$last_deployed" ]] && git cat-file -e "$last_deployed^{commit}"; then
+            printf 'Alleen Git-wijzigingen sinds geslaagde deploy %s overzetten.\n' "$last_deployed"
+            {
+              printf 'set cmd:fail-exit true\nset net:max-retries 2\nset net:timeout 20\nset ftp:passive-mode true\nset ftp:ssl-allow true\nset ssl:verify-certificate true\n'
+              printf 'open "%s"\nuser "%s" "%s"\n' "$ftp_server" "$ftp_username" "$ftp_password"
+
+              while IFS= read -r -d '' path; do
+                if included_path "$path"; then
+                  deploy_file "$path"
+                fi
+              done < <(git diff --name-only -z --no-renames --diff-filter=ACMRT "$last_deployed" HEAD)
+
+              while IFS= read -r -d '' path; do
+                if included_path "$path"; then
+                  delete_file "$path"
+                fi
+              done < <(git diff --name-only -z --no-renames --diff-filter=D "$last_deployed" HEAD)
+
+              # The preceding full deploy timed out and may have uploaded this
+              # MU-plugin before it stopped. The replacement is a normal plugin.
+              delete_file 'wp-content/mu-plugins/account-enumeration-guard.php'
+
+              printf 'bye\n'
+            } | lftp
+            printf 'Incrementele deploy afgerond.\n'
+            exit 0
+          fi
+
+          printf 'Geen eerdere geslaagde deploy gevonden; volledige upload uitvoeren.\n'
           lftp <<EOF_LFTP
           set cmd:fail-exit true
           set net:max-retries 2
