@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: Account Enumeration Guard
- * Description: Limits public account enumeration through login, password reset, and the REST users endpoint.
- * Version: 1.1.0
+ * Description: Limits public account enumeration and guides administrators through public author settings.
+ * Version: 1.2.0
  * Requires PHP: 7.4
  */
 
@@ -103,3 +103,5 @@ function aeg_hide_public_rest_users( $result, $server, $request ) {
 	);
 }
 add_filter( 'rest_pre_dispatch', 'aeg_hide_public_rest_users', 10, 3 );
+
+require_once __DIR__ . '/includes/author-setup.php';
