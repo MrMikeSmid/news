@@ -110,7 +110,11 @@ jobs:
             local path=$1
             local remote_path
             remote_path="${FTP_SERVER_DIR%/}/$path"
+            # Some FTP servers return 550 when mkdir -p reaches an existing
+            # directory. The following put still fails if its parent is absent.
+            printf 'set cmd:fail-exit false\n'
             printf 'mkdir -p "%s"\n' "$(escape_lftp_value "$(dirname "$remote_path")")"
+            printf 'set cmd:fail-exit true\n'
             printf 'put "%s" -o "%s"\n' "$(escape_lftp_value "$path")" "$(escape_lftp_value "$remote_path")"
           }
 
