@@ -157,6 +157,11 @@ jobs:
               # MU-plugin before it stopped. The replacement is a normal plugin.
               delete_file 'wp-content/mu-plugins/account-enumeration-guard.php'
 
+              # A cancelled run partially uploaded this private audit report to
+              # the webroot. Remove it even though it is absent from the last
+              # successful deploy and therefore absent from the Git diff.
+              delete_file 'akismet-security-report-2026-10-22.pdf'
+
               printf 'bye\n'
             } | lftp
             printf 'Incrementele deploy afgerond.\n'
